@@ -4,6 +4,18 @@ Unified live system for Game (masterledgerlive): **Base-first** storage inject, 
 
 JWT is **strand READ access**, not money. No guaranteed PnL. No invented fills. Vault never spends save.
 
+## Public show (free, no API keys)
+
+Open the cartoon carnival in a browser — paper / DEMO works fully client-side:
+
+**[https://masterledgerlive.github.io/StorageToken/](https://masterledgerlive.github.io/StorageToken/)**
+
+Watch the wave-vs-inject show, surf hitch sizes (ride vs wipeout), and click through Sepolia ↔ live Coinbase CDP onboarding. Costs stay labeled **DEMO** until a mined 64-nibble `txHash` comes back from **your** Railway. This site never invents live hashes and never asks for injector keys or JWTs.
+
+Game’s Railway trial is **expired**. Visitors with a fresh Railway trial can deploy this repo for free. Game walks the UI first, then upgrades Railway later. Real inject only if you paste your own `RAILWAY_URL` (trial works for new accounts).
+
+Static files live in [`web/`](./web/). GitHub Pages deploys from that folder via [`.github/workflows/pages.yml`](./.github/workflows/pages.yml) (`actions/deploy-pages`). After merge, enable **Settings → Pages → Source: GitHub Actions** if the first deploy has not created the environment yet.
+
 ## Honest sources
 
 These were **merged**, not pretended to already live in one repo:
