@@ -4,17 +4,19 @@ Unified live system for Game (masterledgerlive): **Base-first** storage inject, 
 
 JWT is **strand READ access**, not money. No guaranteed PnL. No invented fills. Vault never spends save.
 
-## Public show (free, no API keys)
+## Public desk (free, no API keys)
 
-Open the cartoon carnival in a browser — paper / DEMO works fully client-side:
+Open **$STORE Desk / STORE FLOOR** in a browser — paper / DEMO works fully client-side:
 
 **[https://masterledgerlive.github.io/StorageToken/](https://masterledgerlive.github.io/StorageToken/)**
 
-Watch the wave-vs-inject show, surf hitch sizes (ride vs wipeout), and click through Sepolia ↔ live Coinbase CDP onboarding. Costs stay labeled **DEMO** until a mined 64-nibble `txHash` comes back from **your** Railway. This site never invents live hashes and never asks for injector keys or JWTs.
+Neon storage-inject floor: header, metric cards, locker-core swarm with eight seats (**WAVE, SPARSE, BROKER, RISK, VAULT, INJECT, RETRIEVE, PROOF**), activity log, avenue picker, and a paper broker (lock-first, sparse shard map, gap-fill vs express). Costs stay labeled **DEMO** until a mined 64-nibble `txHash` comes back from **your** Railway. This site never invents live hashes and never asks for injector keys or JWTs. Not branded GROKTOPUS or Ridark. Not a trading desk.
 
-Game’s Railway trial is **expired**. Visitors with a fresh Railway trial can deploy this repo for free. Game walks the UI first, then upgrades Railway later. Real inject only if you paste your own `RAILWAY_URL` (trial works for new accounts).
+Sepolia ↔ live Coinbase CDP onboard is still in the wizard. Game’s Railway trial is **expired**. Visitors with a fresh Railway trial can deploy this repo for free. Real inject only if you paste your own `RAILWAY_URL`.
 
-Static files live in [`web/`](./web/). GitHub Pages deploys from that folder via [`.github/workflows/pages.yml`](./.github/workflows/pages.yml) (`actions/deploy-pages`). After merge, enable **Settings → Pages → Source: GitHub Actions** if the first deploy has not created the environment yet.
+Static files live in [`web/`](./web/). Seat profiles: [`agents/store-floor/`](./agents/store-floor/) (**INJECT** is the sole writer). Proof-market plan: [`docs/STORE_PROOF_MARKET.md`](./docs/STORE_PROOF_MARKET.md). Optional trading seats only: [`galleonlabs/hypergrok-trading-desk`](https://github.com/galleonlabs/hypergrok-trading-desk) — do not import those seats here.
+
+GitHub Pages deploys from `web/` via [`.github/workflows/pages.yml`](./.github/workflows/pages.yml). After merge, enable **Settings → Pages → Source: GitHub Actions** if the first deploy has not created the environment yet.
 
 ## Honest sources
 
@@ -54,6 +56,8 @@ Game / Grok Bot / agents
 | `base_dedicated` | yes (default) | Dedicated storage tx — ethers calldata to router (or provider if undeployed). |
 | `uniswap_hitch` | yes, gated | Hitch on **OUR** Uniswap/Base leftover. Requires a leftover registered from a **mined** swap receipt. Never invents a swap. Payload ≤ leftover bytes. |
 | `coinbase_onchain` | if `COINBASE_CDP_*` **or** old-guide `COINBASE_API_KEY` + `COINBASE_API_SECRET` + (`COINBASE_PRIVATE_KEY` or `COINBASE_CDP_PROJECT_ID`) | Coinbase CDP / Base wallet on-chain calldata. **Not** CEX Advanced Trade. |
+| `wave_first`, `gap_fill`, `priority_express` | **stub / paper policy** | Desk can simulate. Switchboard will not enable them as senders. |
+| `multi_chain_cheapest` | **stub — disabled** | Base only today. No multi-chain quote. |
 | `x402`, `kite` | **stub — disabled** | Future. Stay off even if env flags are true. |
 
 `GET /api/switchboard` · `POST /api/switchboard` `{ "entryPoint": "coinbase_onchain" }`
@@ -82,7 +86,10 @@ Base URL = Railway domain. JSON in / JSON out.
 | `GET` | `/health` | Liveness, mode, network, `fundAddress`, `modeApi`, voice, payment rule |
 | `GET` | `/api/status` | `fundAddress`, `network`, `chainId`, `mode`, `entryPoint`, `coinbaseOnchainReady`, `switchHint` |
 | `POST` | `/api/mode` | In-memory mode flip. Mainnet requires `confirmMainnet:"yes"` + `BASE_RPC`. |
-| `GET`/`POST` | `/api/switchboard` | Feature flags |
+| `GET`/`POST` | `/api/switchboard` | Feature flags. POST refuses stub avenues. |
+| `GET` | `/api/avenues` | Desk avenue catalog (live vs honest stub) |
+| `GET` | `/api/seats` | STORE FLOOR seats; INJECT sole writer |
+| `GET`/`POST` | `/api/broker/book` `offer` `lock` `fill` | Paper open-market slots in `$STORE` credits. Lock-first. `txHash` always null. |
 | `POST` | `/api/inject` | Store `§$STORE§` (or any bytes). Pays **credits**. Returns receipt hash or `paperId`. |
 | `GET` | `/api/injection/:id` | Map only. Unknown id → **404**, no invented hash |
 | `GET` | `/api/retrieve/:txHash` | Chain read; requires JWT |

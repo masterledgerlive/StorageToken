@@ -13,7 +13,8 @@
 # paper | base_sepolia | base_mainnet_guarded | full_live
 MODE=base_sepolia
 
-# base_dedicated | uniswap_hitch | coinbase_onchain
+# live senders: base_dedicated | uniswap_hitch | coinbase_onchain
+# paper/stub avenues (disabled as senders): wave_first | gap_fill | priority_express | multi_chain_cheapest
 # stubs (disabled): x402 | kite
 ENTRY_POINT=base_dedicated
 
@@ -67,6 +68,21 @@ X402_ENABLED=false
 KITE_ENABLED=false
 `;
 
+  const SEATS = ["WAVE", "SPARSE", "BROKER", "RISK", "VAULT", "INJECT", "RETRIEVE", "PROOF"];
+
+  const AVENUES = [
+    { id: "base_dedicated", live: true, stub: false, label: "Base dedicated", reason: "Dedicated Base storage tx (ethers calldata). Live sender." },
+    { id: "uniswap_hitch", live: true, stub: false, label: "Uniswap hitch", reason: "Hitch only on OUR real leftover — never invent a swap." },
+    { id: "coinbase_onchain", live: true, stub: false, label: "Coinbase on-chain", reason: "CDP / Base wallet. CEX Advanced Trade cannot carry calldata." },
+    { id: "wave_first", live: false, stub: true, label: "Wave first", reason: "Paper policy: prefer leftover hitch, else dedicated. Not a live sender." },
+    { id: "gap_fill", live: false, stub: true, label: "Gap fill", reason: "Paper broker policy. Live inject still uses a live sender." },
+    { id: "priority_express", live: false, stub: true, label: "Priority express", reason: "Paper broker express slot. Not a live chain path." },
+    { id: "multi_chain_cheapest", live: false, stub: true, label: "Multi-chain cheapest", reason: "Stub — Base only today. No multi-chain quote." },
+  ];
+
+  const EXPRESS_MULT = 3n;
+  const SHARD_CELLS = 64;
+
   const CAPTIONS = [
     "Ride the leftover!",
     "Dedicated store, value=0",
@@ -97,6 +113,11 @@ KITE_ENABLED=false
     risk: freshRisk(1000),
     sampler: { ehlers: { a: 1, b: 1 }, rsi: { a: 1, b: 1 }, macd: { a: 1, b: 1 }, bb: { a: 1, b: 1 } },
     prices: seedPrices(),
+    avenue: "base_dedicated",
+    brokerKind: "gap_fill",
+    brokerSlots: [],
+    selectedSlot: null,
+    injects: 0,
   };
 
   function $(id) {
@@ -137,6 +158,45 @@ KITE_ENABLED=false
 
   function hitchFits(payloadBytes, leftoverBytes) {
     return payloadBytes > 0 && payloadBytes <= leftoverBytes;
+  }
+
+  function creditsForSlot(kind, leftoverBytes) {
+    const base = costForBytes(Math.max(leftoverBytes, 1));
+    return kind === "priority_express" ? base * EXPRESS_MULT : base;
+  }
+
+  function sparseShards(leftoverBytes) {
+    const count = Math.min(SHARD_CELLS, Math.max(1, Math.ceil(leftoverBytes / 8)));
+    const out = [];
+    let cursor = leftoverBytes % SHARD_CELLS;
+    for (let i = 0; i < count; i++) {
+      out.push(cursor);
+      cursor = (cursor + 7 + (leftoverBytes % 5)) % SHARD_CELLS;
+      if (out.includes(cursor)) cursor = (cursor + 1) % SHARD_CELLS;
+    }
+    return [...new Set(out)].sort((a, b) => a - b);
+  }
+
+  function paperSlotId() {
+    return `paper_slot_${paperId().slice(6)}`;
+  }
+
+  function paperLockId() {
+    return `paper_lock_${paperId().slice(6)}`;
+  }
+
+  function lockFirstFill(slot) {
+    if (!slot || !slot.locked || !slot.lockId) {
+      throw new Error("lock-first required before fill");
+    }
+    if (slot.filled) throw new Error("Slot already filled");
+    const id = paperId();
+    if (id.startsWith("0x") || isVerifiedTxHash(id)) {
+      throw new Error("paper path must never mint a 0x hash");
+    }
+    slot.filled = true;
+    slot.paperId = id;
+    return { paperId: id, txHash: null };
   }
 
   function freshRisk(equity) {
@@ -315,11 +375,18 @@ KITE_ENABLED=false
     fillSparseBits(4);
     $("inject-target").classList.add("is-hit");
     setTimeout(() => $("inject-target").classList.remove("is-hit"), 450);
+    state.injects += 1;
     logReceipt(
       "receipt-log",
       `${costStamp(false)} <strong>${id}</strong><br/>
        voice ${STORE_VOICE} · ${bytes}B · ${formatStore(cost)} · status=paper · txHash=none`
     );
+    logReceipt(
+      "desk-log",
+      `${costStamp(false)} <span class="tag">INJECT</span> ${id} · ${state.avenue} · ${formatStore(cost)}`
+    );
+    pulseSeat("INJECT");
+    updateMetrics();
   }
 
   function paperTick() {
@@ -350,7 +417,196 @@ KITE_ENABLED=false
     $("light-kill").className = `lamp ${state.risk.killed ? "bad" : ""}`;
     $("score-target").textContent = target.toFixed(4);
     $("score-arm").textContent = `${arm} vote=${votes[arm]}`;
+    pulseSeat("RISK");
+    logReceipt(
+      "desk-log",
+      `${costStamp(false)} <span class="tag">RISK</span> arm ${arm} · kill=${state.risk.killed ? "yes" : "no"}`
+    );
+    updateMetrics();
     return { arm, votes, target, wouldTrade: !state.risk.killed && votes[arm] > 0 };
+  }
+
+  function pulseSeat(name) {
+    document.querySelectorAll(`[data-seat="${name}"]`).forEach((el) => {
+      el.classList.add("is-on");
+      setTimeout(() => el.classList.remove("is-on"), 900);
+    });
+  }
+
+  function updateMetrics() {
+    const credits = $("metric-credits");
+    const injects = $("metric-injects");
+    const rides = $("metric-rides");
+    const avenue = $("metric-avenue");
+    const note = $("metric-avenue-note");
+    if (credits) credits.textContent = formatStore(state.vaultSave);
+    if (injects) injects.textContent = String(state.injects);
+    const total = state.rides + state.wipes;
+    if (rides) {
+      rides.textContent = total ? `${state.rides}/${total}` : "—";
+    }
+    const row = AVENUES.find((a) => a.id === state.avenue);
+    if (avenue) avenue.textContent = state.avenue;
+    if (note) note.textContent = row ? (row.stub ? `STUB · ${row.reason}` : row.reason) : "";
+    const chip = $("chip-mode");
+    if (chip) chip.textContent = state.verifiedHash ? "LIVE" : "PAPER";
+  }
+
+  function renderAvenues() {
+    const grid = $("avenue-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    AVENUES.forEach((row) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `choice avenue ${state.avenue === row.id ? "is-on" : ""}`;
+      btn.dataset.avenue = row.id;
+      btn.innerHTML = `<span class="badge ${row.stub ? "stub" : "live"}">${row.stub ? "STUB" : "LIVE"}</span>
+        <strong>${row.id}</strong>
+        <span>${row.label}</span>
+        <span class="fine">${row.reason}</span>`;
+      btn.addEventListener("click", () => selectAvenue(row.id));
+      grid.appendChild(btn);
+    });
+  }
+
+  function selectAvenue(id) {
+    const row = AVENUES.find((a) => a.id === id);
+    if (!row) return;
+    state.avenue = id;
+    renderAvenues();
+    const hint = $("avenue-hint");
+    if (hint) {
+      hint.innerHTML = row.stub
+        ? `Selected <code>${id}</code> — honest stub / paper policy. Switchboard will not enable it as a sender.`
+        : `Selected <code>${id}</code> — ${row.reason}`;
+    }
+    logReceipt("desk-log", `${costStamp(false)} <span class="tag">WAVE</span> avenue ${id}${row.stub ? " · stub" : ""}`);
+    pulseSeat(row.stub ? "WAVE" : "INJECT");
+    updateMetrics();
+  }
+
+  function renderShardMap(slot) {
+    const map = $("shard-map");
+    const status = $("shard-status");
+    if (!map) return;
+    map.innerHTML = "";
+    if (!slot) {
+      if (status) status.textContent = "No slot selected.";
+      return;
+    }
+    for (let i = 0; i < SHARD_CELLS; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (slot.shards.includes(i)) {
+        cell.classList.add(slot.filled ? "filled" : slot.locked ? "locked" : "on");
+      }
+      map.appendChild(cell);
+    }
+    if (status) {
+      status.textContent = `${slot.kind} · ${slot.shards.length}/${SHARD_CELLS} shards · ${
+        slot.filled ? "filled " + slot.paperId : slot.locked ? "locked " + slot.lockId : "open " + slot.slotId
+      }`;
+    }
+    pulseSeat("SPARSE");
+  }
+
+  function renderBrokerBook() {
+    const ol = $("broker-book");
+    if (!ol) return;
+    ol.innerHTML = "";
+    if (!state.brokerSlots.length) {
+      const li = document.createElement("li");
+      li.textContent = "Empty paper book. Offer a gap_fill or priority_express slot.";
+      ol.appendChild(li);
+      return;
+    }
+    state.brokerSlots.forEach((slot) => {
+      const li = document.createElement("li");
+      li.innerHTML = `${costStamp(false)} <strong>${slot.slotId}</strong><br/>
+        ${slot.kind} · ${slot.leftoverBytes}B · ${formatStore(BigInt(slot.creditsAsk))} ·
+        ${slot.filled ? "filled" : slot.locked ? "locked" : "open"}`;
+      const pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "ghost";
+      pick.textContent = "Select";
+      pick.addEventListener("click", () => {
+        state.selectedSlot = slot;
+        renderShardMap(slot);
+      });
+      const lockBtn = document.createElement("button");
+      lockBtn.type = "button";
+      lockBtn.className = "ghost";
+      lockBtn.textContent = "Lock";
+      lockBtn.addEventListener("click", () => lockSlot(slot));
+      const fillBtn = document.createElement("button");
+      fillBtn.type = "button";
+      fillBtn.className = "primary";
+      fillBtn.textContent = "Fill";
+      fillBtn.addEventListener("click", () => fillSlot(slot));
+      li.appendChild(document.createElement("br"));
+      li.appendChild(pick);
+      li.appendChild(lockBtn);
+      li.appendChild(fillBtn);
+      ol.appendChild(li);
+    });
+  }
+
+  function offerSlot() {
+    const leftover = Number($("broker-bytes").value);
+    const slotId = paperSlotId();
+    if (slotId.startsWith("0x") || isVerifiedTxHash(slotId)) {
+      throw new Error("paper path must never mint a 0x hash");
+    }
+    const slot = {
+      slotId,
+      kind: state.brokerKind,
+      leftoverBytes: leftover,
+      creditsAsk: creditsForSlot(state.brokerKind, leftover).toString(),
+      shards: sparseShards(leftover),
+      locked: false,
+      filled: false,
+    };
+    state.brokerSlots.unshift(slot);
+    state.selectedSlot = slot;
+    renderShardMap(slot);
+    renderBrokerBook();
+    logReceipt(
+      "desk-log",
+      `${costStamp(false)} <span class="tag">BROKER</span> offer ${slot.slotId} · ${slot.kind} · ${formatStore(BigInt(slot.creditsAsk))}`
+    );
+    pulseSeat("BROKER");
+  }
+
+  function lockSlot(slot) {
+    if (slot.filled) return;
+    if (slot.locked) return;
+    const lockId = paperLockId();
+    if (lockId.startsWith("0x") || isVerifiedTxHash(lockId)) {
+      throw new Error("paper path must never mint a 0x hash");
+    }
+    slot.locked = true;
+    slot.lockId = lockId;
+    state.selectedSlot = slot;
+    renderShardMap(slot);
+    renderBrokerBook();
+    logReceipt("desk-log", `${costStamp(false)} <span class="tag">BROKER</span> lock ${lockId}`);
+    pulseSeat("BROKER");
+  }
+
+  function fillSlot(slot) {
+    try {
+      const fill = lockFirstFill(slot);
+      renderShardMap(slot);
+      renderBrokerBook();
+      logReceipt(
+        "desk-log",
+        `${costStamp(false)} <span class="tag">PROOF</span> paper fill ${fill.paperId} · txHash=none`
+      );
+      pulseSeat("PROOF");
+    } catch (err) {
+      logReceipt("desk-log", `${costStamp(false)} <span class="tag">PROOF</span> ${err.message}`);
+    }
   }
 
   function showTab(name) {
@@ -473,6 +729,12 @@ KITE_ENABLED=false
           `${costStamp(true)} <strong>${hash}</strong><br/>
            from your Railway receipt · ${json.mode || "?"} · ${json.paidCredits || "?"} credits`
         );
+        logReceipt(
+          "desk-log",
+          `${costStamp(true)} <span class="tag">PROOF</span> mined ${hash}`
+        );
+        pulseSeat("PROOF");
+        updateMetrics();
       } else if (typeof json.paperId === "string" && json.paperId.startsWith("paper_")) {
         logReceipt(
           "receipt-log",
@@ -634,6 +896,17 @@ KITE_ENABLED=false
     });
     $("btn-live-inject").addEventListener("click", liveInject);
 
+    document.querySelectorAll("[data-kind]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.brokerKind = btn.dataset.kind;
+        document.querySelectorAll("[data-kind]").forEach((b) => b.classList.toggle("is-on", b === btn));
+      });
+    });
+    $("broker-bytes").addEventListener("input", () => {
+      $("broker-bytes-out").textContent = `${$("broker-bytes").value} B`;
+    });
+    $("btn-broker-offer").addEventListener("click", offerSlot);
+
     setInterval(rotateCaptions, 2200);
   }
 
@@ -642,9 +915,14 @@ KITE_ENABLED=false
     syncSliders();
     setBanner(null);
     setStep(0);
+    renderAvenues();
+    renderBrokerBook();
+    renderShardMap(null);
+    updateMetrics();
     bind();
     const hash = location.hash.replace("#", "") || "show";
-    showTab(["show", "surf", "onboard", "grok"].includes(hash) ? hash : "show");
+    const tabs = ["show", "avenues", "broker", "surf", "onboard", "grok"];
+    showTab(tabs.includes(hash) ? hash : "show");
   }
 
   window.StorageTokenShow = {
@@ -653,6 +931,13 @@ KITE_ENABLED=false
     costForBytes,
     hitchFits,
     sellTarget,
+    creditsForSlot,
+    sparseShards,
+    paperSlotId,
+    paperLockId,
+    lockFirstFill,
+    AVENUES,
+    SEATS,
     STORE_VOICE,
     PAGES_URL,
     REPO,

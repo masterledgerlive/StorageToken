@@ -77,7 +77,7 @@ export function parseEntryPoint(raw: string | undefined): EntryPoint {
   const value = (raw || "base_dedicated").trim() as EntryPoint;
   if (!ENTRY_POINTS.includes(value)) {
     throw new Error(
-      `Invalid ENTRY_POINT=${raw}. Use base_dedicated | uniswap_hitch | coinbase_onchain`
+      `Invalid ENTRY_POINT=${raw}. Live senders: base_dedicated | uniswap_hitch | coinbase_onchain. Paper/stub avenues: wave_first | gap_fill | priority_express | multi_chain_cheapest. Disabled stubs: x402 | kite.`
     );
   }
   return value;

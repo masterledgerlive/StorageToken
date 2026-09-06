@@ -2,7 +2,7 @@
 
 One page. Default `MODE=base_sepolia` (chainId **84532**). Payment is **$STORE credits**, not ETH value, not Stripe, not CEX.
 
-Walk the free public show first (paper / DEMO, no keys):
+Walk the free **$STORE Desk / STORE FLOOR** first (paper / DEMO, no keys):
 [https://masterledgerlive.github.io/StorageToken/](https://masterledgerlive.github.io/StorageToken/).
 Game’s Railway trial is expired; a **fresh** Railway trial can still deploy this repo for free.
 
