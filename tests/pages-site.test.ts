@@ -187,6 +187,7 @@ class FakeEl {
     contains: () => false,
   };
   style: Record<string, string> = {};
+  dataset: Record<string, string> = {};
   constructor(id: string) {
     this.id = id;
   }

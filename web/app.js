@@ -460,7 +460,7 @@ KITE_ENABLED=false
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = `choice avenue ${state.avenue === row.id ? "is-on" : ""}`;
-      btn.dataset.avenue = row.id;
+      if (btn.dataset) btn.dataset.avenue = row.id;
       btn.innerHTML = `<span class="badge ${row.stub ? "stub" : "live"}">${row.stub ? "STUB" : "LIVE"}</span>
         <strong>${row.id}</strong>
         <span>${row.label}</span>
