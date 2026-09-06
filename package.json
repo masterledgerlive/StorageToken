@@ -1,0 +1,38 @@
+{
+  "name": "storage-token",
+  "version": "1.0.0",
+  "description": "Unified $STORE StorageToken — Base-first hitch/inject, $STORE credits as only storage payment",
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && esbuild src/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "compile": "tsx scripts/compile.ts",
+    "deploy": "tsx scripts/deploy.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "ethers": "^6.13.4",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "nanoid": "^5.1.5",
+    "solc": "^0.8.24",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
