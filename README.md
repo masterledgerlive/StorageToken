@@ -63,7 +63,7 @@ Game / Grok Bot / agents
 
 `GET /api/switchboard` · `POST /api/switchboard` `{ "entryPoint": "coinbase_onchain" }`
 
-Sepolia → live Base: **[COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md)**. `GET /api/status` shows `fundAddress` (hot injector to fund), `network`, `chainId`, `coinbaseOnchainReady`, and `switchHint`.
+Sepolia → live Base: **[COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md)**. Set `COINBASE_CDP_ADDRESS=0x50e1…` to use the CDP portal API key wallet. `GET /api/status` shows `fundAddress` (that wallet on `coinbase_onchain`, else the hot injector), `network`, `chainId`, `coinbaseOnchainReady`, and `switchHint`.
 
 ## Modes
 

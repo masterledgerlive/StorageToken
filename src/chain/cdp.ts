@@ -3,6 +3,7 @@ import { assertModeAllowsChain, type AppConfig } from "../config.js";
 import { assertNotMockedHash } from "../payload.js";
 import {
   asHexPrivateKey,
+  configuredCdpAddress,
   resolveFundAddress,
 } from "./keys.js";
 import type { BlockchainAdapter } from "./adapter.js";
@@ -18,6 +19,8 @@ export function cdpFaucetAllowed(network: NetworkName): boolean {
 
 export interface CdpSendClient {
   evm: {
+    /** Official CDP SDK: get existing EOA by address or name. */
+    getAccount?(opts: { address?: string; name?: string }): Promise<{ address: string }>;
     getOrCreateAccount(opts: { name: string }): Promise<{ address: string }>;
     sendTransaction(opts: {
       address: string;
@@ -56,23 +59,56 @@ export async function loadCdpClient(config: AppConfig): Promise<CdpSendClient | 
   }
 }
 
+/**
+ * CDP sender: configured COINBASE_CDP_ADDRESS / CDP_ADDRESS via getAccount({ address }),
+ * else named StorageTokenHot. Never create StorageTokenHot when an address is set.
+ */
+export async function resolveCdpSenderAddress(
+  config: AppConfig,
+  cdp: CdpSendClient
+): Promise<string> {
+  const configured = configuredCdpAddress(config);
+  if (configured) {
+    if (typeof cdp.evm.getAccount === "function") {
+      try {
+        const account = await cdp.evm.getAccount({ address: configured });
+        if (account?.address) {
+          config.resolvedFundAddress = account.address;
+          return account.address;
+        }
+      } catch {
+        // Lookup failed — still send from the configured EOA (do not create StorageTokenHot).
+      }
+    }
+    config.resolvedFundAddress = configured;
+    return configured;
+  }
+
+  const account = await cdp.evm.getOrCreateAccount({ name: HOT_ACCOUNT_NAME });
+  if (!account?.address) {
+    throw new Error("CDP getOrCreateAccount(StorageTokenHot) returned no address");
+  }
+  config.resolvedFundAddress = account.address;
+  return account.address;
+}
+
 export async function resolveCdpFundAddress(
   config: AppConfig,
   client?: CdpSendClient
 ): Promise<string | undefined> {
-  const existing = resolveFundAddress(config);
+  const existing = resolveFundAddress({
+    ...config,
+    entryPoint: "coinbase_onchain",
+  });
   if (existing) {
     config.resolvedFundAddress = existing;
     return existing;
   }
   const cdp = client ?? (await loadCdpClient(config));
   if (!cdp) return undefined;
-  const account = await cdp.evm.getOrCreateAccount({ name: HOT_ACCOUNT_NAME });
-  if (account?.address) {
-    config.resolvedFundAddress = account.address;
-    return account.address;
-  }
-  return undefined;
+  const address = await resolveCdpSenderAddress(config, cdp);
+  config.resolvedFundAddress = address;
+  return address;
 }
 
 export interface CoinbaseOnchainInput {
@@ -101,6 +137,15 @@ export async function sendCoinbaseOnchain(
 
   const hexSecret = asHexPrivateKey(input.config.coinbaseCdp.walletSecret);
   const injectorHex = asHexPrivateKey(input.config.injectorPrivateKey);
+  const configured = configuredCdpAddress(input.config);
+
+  // Configured portal API-key wallet: send from that address via CDP, not INJECTOR.
+  if (configured) {
+    const cdp = input.cdpClient ?? (await loadCdpClient(input.config));
+    if (cdp) {
+      return sendWithCdpSdk(input, cdp, chain.name as NetworkName);
+    }
+  }
 
   if (hexSecret) {
     return sendWithHexKey(input, hexSecret);
@@ -146,13 +191,10 @@ async function sendWithCdpSdk(
   cdp: CdpSendClient,
   network: NetworkName
 ): Promise<InjectionResult> {
-  const account = await cdp.evm.getOrCreateAccount({ name: HOT_ACCOUNT_NAME });
-  if (account?.address) {
-    input.config.resolvedFundAddress = account.address;
-  }
+  const address = await resolveCdpSenderAddress(input.config, cdp);
 
   const submitted = await cdp.evm.sendTransaction({
-    address: account.address,
+    address,
     network,
     transaction: {
       to: input.to,

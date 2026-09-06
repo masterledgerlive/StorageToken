@@ -15,7 +15,11 @@ export function runtimePublicFields(
   switchboard: SwitchboardState
 ) {
   const network = networkForMode(config.mode);
-  const fundAddress = resolveFundAddress(config) ?? null;
+  const fundAddress =
+    resolveFundAddress({
+      ...config,
+      entryPoint: switchboard.entryPoint,
+    }) ?? null;
   const ready = coinbaseCdpReady(config);
   return {
     mode: config.mode,
