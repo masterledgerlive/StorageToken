@@ -62,6 +62,8 @@ Preferred names (this repo):
 | `COINBASE_CDP_PROJECT_ID` | optional; also satisfies switchboard readiness with the two API keys |
 | `COINBASE_CDP_ADDRESS` | optional stable EVM address if the wallet secret is not hex |
 
+**Shared Railway with guardian:** leave `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET` as-is. StorageToken readiness accepts them as aliases — **no remapping**. Empty `COINBASE_CDP_*` names do not hide the guardian keys.
+
 Guardian-protocol-agent names (accepted if the `COINBASE_CDP_*` name is unset — same CDP product):
 
 | Guardian env | Maps to |
@@ -78,7 +80,7 @@ Aliases from the old `coinbase-multi-injector` guide (accepted if the `COINBASE_
 | `COINBASE_API_SECRET` | `COINBASE_CDP_API_SECRET` |
 | `COINBASE_PRIVATE_KEY` | `COINBASE_CDP_WALLET_SECRET` |
 
-`coinbase_onchain` enables only when `apiKey + apiSecret + (walletSecret or projectId)` are set. PEM wallet/API secrets may contain literal `\n` (guardian Railway style) — they are unescaped before the CDP SDK sees them.
+`coinbase_onchain` / `coinbaseOnchainReady` is true when any complete triple is set: `COINBASE_CDP_*`, guardian `CDP_*`, or old-guide `COINBASE_*` (`apiKey + apiSecret + (walletSecret or projectId)`). PEM wallet/API secrets may contain literal `\n` (guardian Railway style) — they are unescaped before the CDP SDK sees them.
 
 Also set, before a live flip:
 

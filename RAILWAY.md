@@ -32,7 +32,7 @@ After `pnpm deploy`:
 | `STORE_TOKEN_ADDRESS` | from `artifacts/deployed.json` |
 | `ROUTER_ADDRESS` | from `artifacts/deployed.json` |
 
-Optional: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (mined inject success / inject fail). Optional on-chain Coinbase: `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET` (guardian names), `COINBASE_CDP_*`, or the old-guide aliases `COINBASE_API_KEY` / `COINBASE_API_SECRET` / `COINBASE_PRIVATE_KEY` (never CEX Advanced Trade keys).
+Optional: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (mined inject success / inject fail). Optional on-chain Coinbase: keep guardian `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET` on a shared Railway project (no remapping), or set `COINBASE_CDP_*`, or the old-guide aliases `COINBASE_API_KEY` / `COINBASE_API_SECRET` / `COINBASE_PRIVATE_KEY` (never CEX Advanced Trade keys).
 
 You **may** set `BASE_RPC` now so a later `POST /api/mode` can flip without a rebuild. Do **not** set `CONFIRM_MAINNET=yes` until the Sepolia inject is boring. `MODE=base_sepolia` **refuses** mainnet 8453. Full story: [COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md).
 

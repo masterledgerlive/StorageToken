@@ -7,6 +7,7 @@ import { createApp } from "../src/app.js";
 import {
   applyModeOverride,
   assertLiveSwitchAllowed,
+  coinbaseEnvReady,
   firstEnv,
   loadConfig,
   networkForMode,
@@ -131,13 +132,32 @@ describe("alias env parsing", () => {
     expect(resolveFundAddress(cfg)).toBe(hot.address);
   });
 
+  it("shared Railway guardian-only env is ready without remapping", () => {
+    const env = {
+      CDP_API_KEY_ID: "guardian-id",
+      CDP_API_KEY_SECRET: "guardian-secret",
+      CDP_WALLET_SECRET: "guardian-wallet",
+      COINBASE_CDP_API_KEY: "",
+      COINBASE_CDP_API_SECRET: "",
+      COINBASE_CDP_WALLET_SECRET: "",
+    };
+    expect(coinbaseEnvReady(env)).toBe(true);
+    expect(coinbaseEnvReady({})).toBe(false);
+    const board = buildSwitchboard(loadConfig(env));
+    expect(board.flags.coinbase_onchain.enabled).toBe(true);
+    expect(loadConfig(env).coinbaseCdp.apiKey).toBe("guardian-id");
+  });
+
   it("prefers COINBASE_CDP_* over aliases", () => {
     const cfg = loadConfig({
       COINBASE_CDP_API_KEY: "cdp-key",
+      CDP_API_KEY_ID: "guardian-id",
       COINBASE_API_KEY: "old-key",
       COINBASE_CDP_API_SECRET: "cdp-secret",
+      CDP_API_KEY_SECRET: "guardian-secret",
       COINBASE_API_SECRET: "old-secret",
       COINBASE_CDP_WALLET_SECRET: "cdp-wallet",
+      CDP_WALLET_SECRET: "guardian-wallet",
       COINBASE_PRIVATE_KEY: "old-private",
       COINBASE_CDP_PROJECT_ID: "proj",
     });

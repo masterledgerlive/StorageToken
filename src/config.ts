@@ -65,6 +65,38 @@ export const CDP_WALLET_SECRET_ALIASES = [
   "COINBASE_PRIVATE_KEY",
 ] as const;
 
+export interface CoinbaseCdpCreds {
+  apiKey?: string;
+  apiSecret?: string;
+  walletSecret?: string;
+  projectId?: string;
+  address?: string;
+}
+
+/**
+ * Resolve CDP creds from a shared Railway env.
+ * Order: COINBASE_CDP_* → guardian CDP_* → old-guide COINBASE_*.
+ * Empty preferred names do not hide guardian keys (no remapping required).
+ */
+export function resolveCoinbaseCdp(env: NodeJS.ProcessEnv = process.env): CoinbaseCdpCreds {
+  return {
+    apiKey: firstEnv(env, ...CDP_API_KEY_ALIASES),
+    apiSecret: unescapeSecret(firstEnv(env, ...CDP_API_SECRET_ALIASES)),
+    walletSecret: unescapeSecret(firstEnv(env, ...CDP_WALLET_SECRET_ALIASES)),
+    projectId: firstEnv(env, "COINBASE_CDP_PROJECT_ID", "CDP_PROJECT_ID"),
+    address: firstEnv(env, "COINBASE_CDP_ADDRESS", "CDP_ADDRESS"),
+  };
+}
+
+export function coinbaseCredsReady(creds: CoinbaseCdpCreds): boolean {
+  return Boolean(creds.apiKey && creds.apiSecret && (creds.walletSecret || creds.projectId));
+}
+
+/** True when guardian CDP_* or COINBASE_CDP_* (or old-guide aliases) form a complete triple. */
+export function coinbaseEnvReady(env: NodeJS.ProcessEnv = process.env): boolean {
+  return coinbaseCredsReady(resolveCoinbaseCdp(env));
+}
+
 export function isMainnetMode(mode: Mode): boolean {
   return mode === "base_mainnet_guarded" || mode === "full_live";
 }
@@ -125,13 +157,7 @@ export interface AppConfig {
   routerAddress?: string;
   defaultProvider?: string;
   confirmMainnet: boolean;
-  coinbaseCdp: {
-    apiKey?: string;
-    apiSecret?: string;
-    walletSecret?: string;
-    projectId?: string;
-    address?: string;
-  };
+  coinbaseCdp: CoinbaseCdpCreds;
   /** Cached CDP / hot injector address after resolve. Not a secret. */
   resolvedFundAddress?: string;
   telegram: {
@@ -159,14 +185,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     routerAddress: env.ROUTER_ADDRESS || undefined,
     defaultProvider: env.DEFAULT_PROVIDER || undefined,
     confirmMainnet: env.CONFIRM_MAINNET === "yes",
-    coinbaseCdp: {
-      // Preferred names, then guardian CDP_*, then old coinbase-multi-injector aliases.
-      apiKey: firstEnv(env, ...CDP_API_KEY_ALIASES),
-      apiSecret: unescapeSecret(firstEnv(env, ...CDP_API_SECRET_ALIASES)),
-      walletSecret: unescapeSecret(firstEnv(env, ...CDP_WALLET_SECRET_ALIASES)),
-      projectId: firstEnv(env, "COINBASE_CDP_PROJECT_ID", "CDP_PROJECT_ID"),
-      address: firstEnv(env, "COINBASE_CDP_ADDRESS", "CDP_ADDRESS"),
-    },
+    coinbaseCdp: resolveCoinbaseCdp(env),
     telegram: {
       botToken: env.TELEGRAM_BOT_TOKEN || undefined,
       chatId: env.TELEGRAM_CHAT_ID || undefined,
