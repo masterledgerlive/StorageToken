@@ -60,7 +60,7 @@ Preferred names (this repo):
 | `COINBASE_CDP_API_SECRET` | CDP API secret |
 | `COINBASE_CDP_WALLET_SECRET` | CDP wallet secret, **or** a 0x hex private key |
 | `COINBASE_CDP_PROJECT_ID` | optional; also satisfies switchboard readiness with the two API keys |
-| `COINBASE_CDP_ADDRESS` | optional stable EVM address if the wallet secret is not hex |
+| `COINBASE_CDP_ADDRESS` | set `COINBASE_CDP_ADDRESS=0x50e1…` to use the CDP portal API key wallet (alias: `CDP_ADDRESS`). Required when the wallet secret is PEM, not hex — otherwise inject creates empty `StorageTokenHot` |
 
 **Shared Railway with guardian:** leave `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET` as-is. StorageToken readiness accepts them as aliases — **no remapping**. Empty `COINBASE_CDP_*` names do not hide the guardian keys.
 
@@ -95,7 +95,7 @@ Also set, before a live flip:
 
 ## (d) Fund `fundAddress` on Base
 
-`GET /api/status` → `fundAddress` (= hot injector).
+`GET /api/status` → `fundAddress` (CDP portal API key wallet when `COINBASE_CDP_ADDRESS` is set and entry is `coinbase_onchain`; otherwise the hot injector).
 
 CDP `requestFaucet` is **Sepolia / testnet only**. Mainnet must be funded externally.
 

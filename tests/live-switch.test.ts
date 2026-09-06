@@ -15,6 +15,7 @@ import {
 import { BlockchainAdapter } from "../src/chain/adapter.js";
 import {
   cdpFaucetAllowed,
+  resolveCdpSenderAddress,
   sendCoinbaseOnchain,
   type CdpSendClient,
 } from "../src/chain/cdp.js";
@@ -148,6 +149,15 @@ describe("alias env parsing", () => {
     expect(loadConfig(env).coinbaseCdp.apiKey).toBe("guardian-id");
   });
 
+  it("maps CDP_ADDRESS as an alias of COINBASE_CDP_ADDRESS", () => {
+    const cfg = loadConfig({
+      CDP_ADDRESS: "0x50e1C4608c48b0c52E1EA5FBabc1c9126eA17915",
+    });
+    expect(cfg.coinbaseCdp.address).toBe(
+      "0x50e1C4608c48b0c52E1EA5FBabc1c9126eA17915"
+    );
+  });
+
   it("prefers COINBASE_CDP_* over aliases", () => {
     const cfg = loadConfig({
       COINBASE_CDP_API_KEY: "cdp-key",
@@ -160,12 +170,102 @@ describe("alias env parsing", () => {
       CDP_WALLET_SECRET: "guardian-wallet",
       COINBASE_PRIVATE_KEY: "old-private",
       COINBASE_CDP_PROJECT_ID: "proj",
+      COINBASE_CDP_ADDRESS: "0x50e1C4608c48b0c52E1EA5FBabc1c9126eA17915",
+      CDP_ADDRESS: "0x0000000000000000000000000000000000000001",
     });
     expect(cfg.coinbaseCdp.apiKey).toBe("cdp-key");
     expect(cfg.coinbaseCdp.apiSecret).toBe("cdp-secret");
     expect(cfg.coinbaseCdp.walletSecret).toBe("cdp-wallet");
     expect(cfg.coinbaseCdp.projectId).toBe("proj");
+    expect(cfg.coinbaseCdp.address).toBe(
+      "0x50e1C4608c48b0c52E1EA5FBabc1c9126eA17915"
+    );
     expect(firstEnv({ A: "", B: "x" }, "A", "B")).toBe("x");
+  });
+});
+
+const PEM_WALLET_SECRET =
+  "-----BEGIN EC PRIVATE KEY-----\nnot-a-hex-key\n-----END EC PRIVATE KEY-----";
+const CDP_PORTAL_WALLET = "0x50e1C4608c48b0c52E1EA5FBabc1c9126eA17915";
+
+describe("fundAddress prefers configured CDP wallet", () => {
+  it("prefers COINBASE_CDP_ADDRESS over INJECTOR when wallet secret is PEM", () => {
+    const injector = Wallet.createRandom();
+    const cfg = loadConfig({
+      ENTRY_POINT: "coinbase_onchain",
+      INJECTOR_PRIVATE_KEY: injector.privateKey,
+      COINBASE_CDP_API_KEY: "k",
+      COINBASE_CDP_API_SECRET: "s",
+      COINBASE_CDP_WALLET_SECRET: PEM_WALLET_SECRET,
+      COINBASE_CDP_ADDRESS: CDP_PORTAL_WALLET,
+    });
+    expect(cfg.coinbaseCdp.address).toBe(CDP_PORTAL_WALLET);
+    expect(resolveFundAddress(cfg)).toBe(CDP_PORTAL_WALLET);
+    expect(resolveFundAddress(cfg)).not.toBe(injector.address);
+  });
+
+  it("shared guardian CDP_* + COINBASE_CDP_ADDRESS still funds the portal wallet", () => {
+    const injector = Wallet.createRandom();
+    const cfg = loadConfig({
+      ENTRY_POINT: "coinbase_onchain",
+      INJECTOR_PRIVATE_KEY: injector.privateKey,
+      CDP_API_KEY_ID: "guardian-id",
+      CDP_API_KEY_SECRET: "guardian-secret",
+      CDP_WALLET_SECRET: PEM_WALLET_SECRET,
+      COINBASE_CDP_ADDRESS: CDP_PORTAL_WALLET,
+    });
+    expect(cfg.coinbaseCdp.apiKey).toBe("guardian-id");
+    expect(resolveFundAddress(cfg)).toBe(CDP_PORTAL_WALLET);
+  });
+
+  it("prefers CDP_ADDRESS over INJECTOR on coinbase_onchain", () => {
+    const injector = Wallet.createRandom();
+    const cfg = loadConfig({
+      ENTRY_POINT: "coinbase_onchain",
+      INJECTOR_PRIVATE_KEY: injector.privateKey,
+      COINBASE_CDP_WALLET_SECRET: PEM_WALLET_SECRET,
+      CDP_ADDRESS: CDP_PORTAL_WALLET,
+    });
+    expect(resolveFundAddress(cfg)).toBe(CDP_PORTAL_WALLET);
+  });
+
+  it("falls back to INJECTOR when no CDP address is configured", () => {
+    const injector = Wallet.createRandom();
+    const cfg = loadConfig({
+      ENTRY_POINT: "coinbase_onchain",
+      INJECTOR_PRIVATE_KEY: injector.privateKey,
+      COINBASE_CDP_WALLET_SECRET: PEM_WALLET_SECRET,
+    });
+    expect(resolveFundAddress(cfg)).toBe(injector.address);
+  });
+
+  it("GET /api/status and /health report the configured CDP address", async () => {
+    const injector = Wallet.createRandom();
+    const vault = Wallet.createRandom();
+    const { app } = await createApp({
+      config: loadConfig({
+        MODE: "base_sepolia",
+        JWT_SECRET: "test-secret",
+        ENTRY_POINT: "coinbase_onchain",
+        INJECTOR_PRIVATE_KEY: injector.privateKey,
+        VAULT_ADDRESS: vault.address,
+        COINBASE_CDP_API_KEY: "k",
+        COINBASE_CDP_API_SECRET: "s",
+        COINBASE_CDP_WALLET_SECRET: PEM_WALLET_SECRET,
+        COINBASE_CDP_ADDRESS: CDP_PORTAL_WALLET,
+      }),
+      adapter: mockAdapter(),
+    });
+    const { server, base } = await listen(app);
+    servers.push(server);
+
+    const status = await (await fetch(`${base}/api/status`)).json();
+    expect(status.fundAddress).toBe(CDP_PORTAL_WALLET);
+    expect(status.hotAddress).toBe(CDP_PORTAL_WALLET);
+    expect(status.entryPoint).toBe("coinbase_onchain");
+
+    const health = await (await fetch(`${base}/health`)).json();
+    expect(health.fundAddress).toBe(CDP_PORTAL_WALLET);
   });
 });
 
@@ -377,6 +477,70 @@ describe("coinbase_onchain inject path", () => {
     expect(body.chain).toBe("base-sepolia");
   });
 
+  it("sends from COINBASE_CDP_ADDRESS via getAccount, not StorageTokenHot", async () => {
+    const injector = Wallet.createRandom();
+    const adapter = new BlockchainAdapter();
+    vi.spyOn(adapter, "getProvider").mockReturnValue({
+      waitForTransaction: async () => ({
+        hash: RECEIPT_HASH,
+        blockNumber: 777,
+        gasUsed: 21000n,
+      }),
+    } as never);
+
+    const getAccount = vi.fn(async (opts: { address?: string; name?: string }) => {
+      expect(opts.address).toBe(CDP_PORTAL_WALLET);
+      expect(opts.name).toBeUndefined();
+      return { address: CDP_PORTAL_WALLET };
+    });
+    const getOrCreateAccount = vi.fn(async () => ({
+      address: "0x2222222222222222222222222222222222222222",
+    }));
+
+    const cdp: CdpSendClient = {
+      evm: {
+        getAccount,
+        getOrCreateAccount,
+        sendTransaction: async (opts) => {
+          expect(opts.address).toBe(CDP_PORTAL_WALLET);
+          expect(opts.network).toBe("base-sepolia");
+          expect(opts.transaction.value).toBe(0n);
+          return { transactionHash: CDP_SUBMITTED };
+        },
+      },
+    };
+
+    const config = loadConfig({
+      MODE: "base_sepolia",
+      ENTRY_POINT: "coinbase_onchain",
+      INJECTOR_PRIVATE_KEY: injector.privateKey,
+      COINBASE_CDP_API_KEY: "k",
+      COINBASE_CDP_API_SECRET: "s",
+      COINBASE_CDP_WALLET_SECRET: PEM_WALLET_SECRET,
+      COINBASE_CDP_ADDRESS: CDP_PORTAL_WALLET,
+    });
+
+    const sender = await resolveCdpSenderAddress(config, cdp);
+    expect(sender).toBe(CDP_PORTAL_WALLET);
+    expect(getAccount).toHaveBeenCalledWith({ address: CDP_PORTAL_WALLET });
+    expect(getOrCreateAccount).not.toHaveBeenCalled();
+
+    const result = await sendCoinbaseOnchain({
+      config,
+      adapter,
+      chain: "base-sepolia",
+      to: PROVIDER,
+      data: "0x68656c6c6f",
+      entryPoint: "coinbase_onchain",
+      paidCredits: "1",
+      cdpClient: cdp,
+    });
+
+    expect(result.txHash).toBe(RECEIPT_HASH);
+    expect(config.resolvedFundAddress).toBe(CDP_PORTAL_WALLET);
+    expect(getOrCreateAccount).not.toHaveBeenCalled();
+  });
+
   it("CDP SDK path waits for the receipt, not the submitted hash", async () => {
     const adapter = new BlockchainAdapter();
     vi.spyOn(adapter, "getProvider").mockReturnValue({
@@ -389,9 +553,10 @@ describe("coinbase_onchain inject path", () => {
 
     const cdp: CdpSendClient = {
       evm: {
-        getOrCreateAccount: async () => ({
-          address: "0x2222222222222222222222222222222222222222",
-        }),
+        getOrCreateAccount: async (opts) => {
+          expect(opts.name).toBe("StorageTokenHot");
+          return { address: "0x2222222222222222222222222222222222222222" };
+        },
         sendTransaction: async (opts) => {
           expect(opts.network).toBe("base-sepolia");
           expect(opts.transaction.value).toBe(0n);

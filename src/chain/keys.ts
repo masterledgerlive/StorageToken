@@ -38,19 +38,37 @@ export function hotAddress(injectorPrivateKey: string | undefined): string | und
   return addressFromPrivateKey(injectorPrivateKey);
 }
 
+/** Portal API-key wallet address from COINBASE_CDP_ADDRESS / CDP_ADDRESS. */
+export function configuredCdpAddress(input: {
+  coinbaseCdp?: { address?: string };
+}): string | undefined {
+  const configured = input.coinbaseCdp?.address?.trim();
+  if (configured && isAddress(configured)) return configured;
+  return undefined;
+}
+
 export function resolveFundAddress(input: {
   injectorPrivateKey?: string;
   resolvedFundAddress?: string;
   coinbaseCdp?: { walletSecret?: string; address?: string };
+  entryPoint?: string;
 }): string | undefined {
-  if (input.resolvedFundAddress && isAddress(input.resolvedFundAddress)) {
-    return input.resolvedFundAddress;
-  }
+  const configured = configuredCdpAddress(input);
   const fromCdpHex = addressFromPrivateKey(input.coinbaseCdp?.walletSecret);
+  const cached =
+    input.resolvedFundAddress && isAddress(input.resolvedFundAddress)
+      ? input.resolvedFundAddress
+      : undefined;
+  const injector = hotAddress(input.injectorPrivateKey);
+  const preferConfiguredCdp =
+    !input.entryPoint || input.entryPoint === "coinbase_onchain";
+
+  // coinbase_onchain (and unspecified): funded CDP portal wallet beats INJECTOR.
+  if (preferConfiguredCdp && configured) return configured;
+  if (cached) return cached;
   if (fromCdpHex) return fromCdpHex;
-  const configured = input.coinbaseCdp?.address;
-  if (configured && isAddress(configured)) return configured;
-  return hotAddress(input.injectorPrivateKey);
+  if (configured) return configured;
+  return injector;
 }
 
 export function assertFundAddressNotVault(

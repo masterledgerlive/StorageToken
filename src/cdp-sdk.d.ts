@@ -6,6 +6,7 @@ declare module "@coinbase/cdp-sdk" {
       walletSecret?: string;
     });
     evm: {
+      getAccount(opts: { address?: string; name?: string }): Promise<{ address: string }>;
       getOrCreateAccount(opts: { name: string }): Promise<{ address: string }>;
       sendTransaction(opts: {
         address: string;
