@@ -226,11 +226,12 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Injection failed";
-      const status = /disabled|Insufficient|Invalid|Missing|Refusing|invent|mocked|CEX/i.test(
-        message
-      )
-        ? 400
-        : 500;
+      const status =
+        /disabled|Insufficient|Invalid|Missing|Refusing|invent|mocked|CEX|txHash|leftover|credits/i.test(
+          message
+        )
+          ? 400
+          : 500;
       res.status(status).json({ error: message });
     }
   });

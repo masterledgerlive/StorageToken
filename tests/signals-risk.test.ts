@@ -48,9 +48,10 @@ describe("signals + Thompson + kills", () => {
       prices: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       fairExit: 10,
       injectCost: 1,
-      mark: 9,
+      mark: 1000,
     });
     expect(d.sellTarget).toBe(11);
-    expect(d.note).toMatch(/does not invent fills|killed/);
+    expect(d.risk.killed).toBe(false);
+    expect(d.note).toMatch(/does not invent fills/);
   });
 });
