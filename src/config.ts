@@ -3,6 +3,7 @@ import {
   assertNotVaultKey,
   resolveFundAddress,
 } from "./chain/keys.js";
+import { parseAllowMainnetCreditSeed } from "./credits/seed-policy.js";
 import {
   BASE_MAINNET_CHAIN_ID,
   BASE_SEPOLIA_CHAIN_ID,
@@ -157,6 +158,8 @@ export interface AppConfig {
   routerAddress?: string;
   defaultProvider?: string;
   confirmMainnet: boolean;
+  /** Exact ALLOW_MAINNET_CREDIT_SEED=yes unlocks a capped mainnet ledger seed. */
+  allowMainnetCreditSeed: boolean;
   coinbaseCdp: CoinbaseCdpCreds;
   /** Cached CDP / hot injector address after resolve. Not a secret. */
   resolvedFundAddress?: string;
@@ -185,6 +188,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     routerAddress: env.ROUTER_ADDRESS || undefined,
     defaultProvider: env.DEFAULT_PROVIDER || undefined,
     confirmMainnet: env.CONFIRM_MAINNET === "yes",
+    allowMainnetCreditSeed: parseAllowMainnetCreditSeed(
+      env.ALLOW_MAINNET_CREDIT_SEED
+    ),
     coinbaseCdp: resolveCoinbaseCdp(env),
     telegram: {
       botToken: env.TELEGRAM_BOT_TOKEN || undefined,

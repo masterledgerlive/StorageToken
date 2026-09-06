@@ -141,7 +141,7 @@ ENTRY_POINT=coinbase_onchain
 
 ## (f) First live `§$STORE§` inject
 
-Credits on mainnet are **not** seeded (`POST /api/credits/seed` is blocked when mainnet is confirmed). The payer must already hold $STORE.
+Credits on mainnet are **not** seeded by default (`POST /api/credits/seed` is blocked); set Railway `ALLOW_MAINNET_CREDIT_SEED=yes` (exact) to unlock a capped internal-ledger bootstrap — max 8 typical §$STORE§ voices (`8000000000000000` wei).
 
 ```bash
 curl -s -X POST "$URL/api/inject" \
