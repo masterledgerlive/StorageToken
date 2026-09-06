@@ -40,7 +40,7 @@ export function buildSwitchboard(
         stub: false,
         reason: ready
           ? "Coinbase CDP / Base wallet on-chain path"
-          : "COINBASE_CDP_* keys missing — on-chain path disabled. CEX Advanced Trade cannot carry calldata.",
+          : "COINBASE_CDP_* (or COINBASE_API_KEY / COINBASE_API_SECRET / COINBASE_PRIVATE_KEY) missing — on-chain path disabled. CEX Advanced Trade cannot carry calldata.",
       };
       continue;
     }

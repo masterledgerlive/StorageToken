@@ -12,7 +12,7 @@ async function startServer(): Promise<void> {
       `[StorageToken] ${config.mode} on http://${config.host}:${config.port}`
     );
     console.log(`[StorageToken] Health: /health  Inject: POST /api/inject`);
-    console.log(`[StorageToken] Default chain: base-sepolia (84532)`);
+    console.log(`[StorageToken] Mode flip: POST /api/mode (in-memory; Railway env wins on restart)`);
     console.log(`[StorageToken] Entry: ${config.entryPoint}  Voice: §$STORE§`);
     console.log(`[StorageToken] Payment: $STORE credits only. JWT = READ access.`);
   });

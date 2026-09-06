@@ -1,7 +1,10 @@
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
+export const BASE_MAINNET_CHAIN_ID = 8453;
 export const BASE_SEPOLIA_RPC_DEFAULT = "https://sepolia.base.org";
 export const DEFAULT_CHAIN = "base-sepolia";
+export const MAINNET_CHAIN = "base";
 export const STORE_VOICE = "§$STORE§";
+export type NetworkName = "base-sepolia" | "base";
 
 export const MAINNET_CHAIN_IDS = new Set<number>([1, 137, 42161, 10, 8453]);
 

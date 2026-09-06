@@ -1,16 +1,16 @@
 import { ethers } from "ethers";
 import { nanoid } from "nanoid";
-import type { AppConfig } from "../config.js";
+import { networkForMode, type AppConfig } from "../config.js";
 import { BlockchainAdapter } from "../chain/adapter.js";
 import { LeftoverRegistry } from "../chain/leftovers.js";
 import { CreditLedger } from "../credits/ledger.js";
 import { costForBytes } from "../credits/pricing.js";
 import { assertNotMockedHash, parseInjectionPayload } from "../payload.js";
 import { wrapStoreVoice } from "../voice.js";
+import { sendCoinbaseOnchain, type CdpSendClient } from "../chain/cdp.js";
 import { assertEntryEnabled, refuseCexAdvancedTrade } from "../switchboard/index.js";
 import type { SwitchboardState } from "../types.js";
 import {
-  DEFAULT_CHAIN,
   STORE_VOICE,
   type EntryPoint,
   type InjectionRecord,
@@ -34,6 +34,7 @@ export interface InjectDeps {
   ledger: CreditLedger;
   leftovers: LeftoverRegistry;
   switchboard: SwitchboardState;
+  cdpClient?: CdpSendClient;
   sendTx?: (input: {
     chain: string;
     to: string;
@@ -90,7 +91,7 @@ export async function executeInject(
 
   const raw = parseInjectionPayload(req.body);
   const payload = wrapStoreVoice(raw);
-  const chain = (req.chain as string | undefined) || DEFAULT_CHAIN;
+  const chain = (req.chain as string | undefined) || networkForMode(deps.config.mode);
   const strandId =
     (typeof req.body.strandId === "string" && req.body.strandId) ||
     `strand_${nanoid()}`;
@@ -152,8 +153,20 @@ export async function executeInject(
 
   const send =
     deps.sendTx ??
-    (async (input) =>
-      deps.adapter.injectCalldata({
+    (async (input) => {
+      if (input.entryPoint === "coinbase_onchain") {
+        return sendCoinbaseOnchain({
+          config: deps.config,
+          adapter: deps.adapter,
+          chain: input.chain,
+          to: input.to,
+          data: input.data,
+          entryPoint: input.entryPoint,
+          paidCredits: input.paidCredits,
+          cdpClient: deps.cdpClient,
+        });
+      }
+      return deps.adapter.injectCalldata({
         chainName: input.chain,
         data: input.data,
         to: input.to,
@@ -161,7 +174,8 @@ export async function executeInject(
         confirmMainnet: deps.config.confirmMainnet,
         entryPoint: input.entryPoint,
         paidCredits: input.paidCredits,
-      }));
+      });
+    });
 
   const result = await send({
     chain,

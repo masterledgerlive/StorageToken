@@ -28,9 +28,9 @@ After `pnpm deploy`:
 | `STORE_TOKEN_ADDRESS` | from `artifacts/deployed.json` |
 | `ROUTER_ADDRESS` | from `artifacts/deployed.json` |
 
-Optional: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. Optional on-chain Coinbase: `COINBASE_CDP_*` (never CEX Advanced Trade keys).
+Optional: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. Optional on-chain Coinbase: `COINBASE_CDP_*` or the old-guide aliases `COINBASE_API_KEY` / `COINBASE_API_SECRET` / `COINBASE_PRIVATE_KEY` (never CEX Advanced Trade keys).
 
-Do **not** set `BASE_RPC` / `CONFIRM_MAINNET=yes` tonight. `MODE=base_sepolia` **refuses** mainnet 8453.
+You **may** set `BASE_RPC` now so a later `POST /api/mode` can flip without a rebuild. Do **not** set `CONFIRM_MAINNET=yes` until the Sepolia inject is boring. `MODE=base_sepolia` **refuses** mainnet 8453. Full story: [COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md).
 
 ## 3. Deploy
 
@@ -45,7 +45,7 @@ You should see `"mode":"base_sepolia"`, `"chainId":84532`, `"voice":"§$STORE§"
 
 ## 4. Fund Sepolia
 
-1. Create/use a dedicated injector wallet. Copy its address (`GET /api/status` → `hotAddress` after the key is set).
+1. Create/use a dedicated injector wallet. Copy its address (`GET /api/status` → `fundAddress` / `hotAddress` after the key is set).
 2. Get Sepolia ETH for **gas only** (Base Sepolia faucet). ~0.01 ETH is plenty.
 3. **Vault stays cold.** If `VAULT_ADDRESS` equals the injector, the service refuses to boot.
 
@@ -108,11 +108,27 @@ curl -s -X POST "$URL/api/inject" \
 
 If there is no leftover, stay on `base_dedicated`. Coinbase CEX cannot register leftovers.
 
-## 8. Graduate modes
+## 8. Graduate modes (Sepolia → live Base)
 
 1. `paper` — local / CI. No chain hashes.
-2. `base_sepolia` — **tonight**.
-3. `base_mainnet_guarded` — later, plus `CONFIRM_MAINNET=yes`, disable `seedCredits`, funded hot key, vault still cold.
-4. `full_live` — only after guarded is boring.
+2. `base_sepolia` — **tonight** (84532).
+3. `base_mainnet_guarded` — after a real Sepolia inject. Requires `BASE_RPC`, `confirmMainnet: "yes"`, funded `fundAddress` on **Base**, vault still cold.
+4. `full_live` — only after guarded is boring. Same 8453 confirm gate.
+
+In-process flip (does **not** survive restart):
+
+```bash
+curl -s -X POST "$URL/api/mode" \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"base_mainnet_guarded","confirmMainnet":"yes"}'
+
+curl -s -X POST "$URL/api/switchboard" \
+  -H 'Content-Type: application/json' \
+  -d '{"entryPoint":"coinbase_onchain"}'
+```
+
+Then set Railway `MODE`, `CONFIRM_MAINNET=yes`, `BASE_RPC`, and `ENTRY_POINT=coinbase_onchain` so the next deploy stays live. Fund `fundAddress` with Base ETH from a Coinbase withdraw (network **Base**). CDP faucet is Sepolia-only.
+
+See **[COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md)**.
 
 x402 / Kite remain stub-disabled.

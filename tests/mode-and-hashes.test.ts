@@ -33,6 +33,11 @@ describe("mode + chain gates", () => {
     );
     expect(() => assertModeAllowsChain("base_mainnet_guarded", 8453, true)).not.toThrow();
   });
+
+  it("full_live also refuses 8453 without confirm", () => {
+    expect(() => assertModeAllowsChain("full_live", 8453, false)).toThrow(/CONFIRM_MAINNET/);
+    expect(() => assertModeAllowsChain("full_live", 8453, true)).not.toThrow();
+  });
 });
 
 describe("adapter sepolia + receipt hashes", () => {

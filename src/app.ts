@@ -1,10 +1,19 @@
 import express from "express";
 import { ethers } from "ethers";
-import { loadConfig, type AppConfig } from "./config.js";
+import {
+  applyModeOverride,
+  loadConfig,
+  parseMode,
+  type AppConfig,
+} from "./config.js";
 import { TokenManager } from "./access/token-manager.js";
 import { BlockchainAdapter } from "./chain/adapter.js";
 import { LeftoverRegistry } from "./chain/leftovers.js";
-import { assertNotVaultKey, hotAddress } from "./chain/keys.js";
+import {
+  assertFundAddressNotVault,
+  assertNotVaultKey,
+  resolveFundAddress,
+} from "./chain/keys.js";
 import { CreditLedger } from "./credits/ledger.js";
 import { costForBytes, sellTarget } from "./credits/pricing.js";
 import { executeInject, type InjectionStore } from "./inject/engine.js";
@@ -14,14 +23,15 @@ import {
   buildSwitchboard,
   refuseCexAdvancedTrade,
 } from "./switchboard/index.js";
+import { runtimePublicFields } from "./status.js";
 import {
-  DEFAULT_CHAIN,
   STORE_VOICE,
   type EntryPoint,
   type InjectionRecord,
+  type Mode,
 } from "./types.js";
 import { notifyTelegram } from "./alerts/telegram.js";
-import { ENTRY_POINTS } from "./types.js";
+import { ENTRY_POINTS, MODES } from "./types.js";
 
 export interface CreateAppOptions {
   config?: AppConfig;
@@ -54,6 +64,8 @@ function serializeRecord(record: InjectionRecord) {
 export async function createApp(options: CreateAppOptions = {}): Promise<CreatedApp> {
   const config = options.config ?? loadConfig();
   assertNotVaultKey(config.injectorPrivateKey, config.vaultAddress);
+  config.resolvedFundAddress = resolveFundAddress(config);
+  assertFundAddressNotVault(config.resolvedFundAddress, config.vaultAddress);
 
   const injectionStore: InjectionStore =
     options.injectionStore ?? new Map<string, InjectionRecord>();
@@ -75,13 +87,12 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/health", (_req, res) => {
+    const runtime = runtimePublicFields(config, switchboard);
     res.json({
       status: "healthy",
       service: "StorageToken",
-      mode: config.mode,
-      defaultChain: DEFAULT_CHAIN,
-      chainId: 84532,
-      entryPoint: switchboard.entryPoint,
+      ...runtime,
+      defaultChain: runtime.network,
       voice: STORE_VOICE,
       payment: "$STORE credits only",
       jwt: "strand READ access — not money",
@@ -94,17 +105,38 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
 
   app.get("/api/status", (_req, res) => {
     res.json({
-      mode: config.mode,
-      entryPoint: switchboard.entryPoint,
-      chain: DEFAULT_CHAIN,
+      ...runtimePublicFields(config, switchboard),
       storeToken: config.storeTokenAddress || null,
       router: config.routerAddress || null,
-      hotAddress: hotAddress(config.injectorPrivateKey) || null,
       vaultAddress: config.vaultAddress || null,
       injections: injectionStore.size,
       leftovers: leftovers.list().filter((l) => !l.used).length,
       noGuaranteedPnl: true,
     });
+  });
+
+  app.post("/api/mode", (req, res) => {
+    const raw = req.body?.mode;
+    if (typeof raw !== "string" || !MODES.includes(raw as Mode)) {
+      return res.status(400).json({
+        error:
+          'Invalid mode. Use paper | base_sepolia | base_mainnet_guarded | full_live',
+      });
+    }
+    try {
+      const next = parseMode(raw);
+      applyModeOverride(config, next, req.body?.confirmMainnet);
+      switchboard = buildSwitchboard(config, switchboard.entryPoint);
+      res.json({
+        ...runtimePublicFields(config, switchboard),
+        persisted: "memory",
+        note: "Railway env remains source of truth on restart. Update MODE, CONFIRM_MAINNET, and BASE_RPC for a durable flip.",
+      });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "mode switch refused",
+      });
+    }
   });
 
   app.get("/api/switchboard", (_req, res) => {
@@ -247,7 +279,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
   app.get("/api/retrieve/:txHash", async (req, res) => {
     try {
       const { txHash } = req.params;
-      const chain = (req.query.chain as string | undefined) || DEFAULT_CHAIN;
+      const chain =
+        (req.query.chain as string | undefined) ||
+        runtimePublicFields(config, switchboard).network;
       const token = (req.query.accessToken as string | undefined) ||
         (req.headers.authorization?.replace(/^Bearer\s+/i, "") as string | undefined);
 
