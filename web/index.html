@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StorageToken Show — §$STORE§ paper carnival</title>
+    <meta
+      name="description"
+      content="Free public StorageToken show. Paper/DEMO in the browser. Real inject only from your Railway URL. $STORE credits only."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#stage">Skip to show</a>
+
+    <div id="demo-banner" class="demo-banner" role="status">
+      <span class="stamp">DEMO</span>
+      <span id="banner-text">
+        Paper carnival — no live fills. Costs stay <strong>DEMO</strong> until a
+        mined 64-nibble <code>txHash</code> comes back from <em>your</em>
+        Railway. Game is not paying Railway tonight.
+      </span>
+    </div>
+
+    <header class="top">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">🫙</span>
+        <div>
+          <p class="eyebrow">masterledgerlive / StorageToken</p>
+          <h1>The <span class="voice">§$STORE§</span> Show</h1>
+        </div>
+      </div>
+      <p class="lede">
+        Watch cartoon bots hitch a wave, fill a sparse bit grid, and guard a
+        save jar that <strong>never spends</strong>. Explore Sepolia or live
+        Coinbase CDP onboarding — credits only, no Game Railway bill.
+      </p>
+      <nav class="tabs" aria-label="Show sections">
+        <a href="#show" data-tab="show" class="is-on">Show</a>
+        <a href="#surf" data-tab="surf">Surf</a>
+        <a href="#onboard" data-tab="onboard">Onboard</a>
+        <a href="#grok" data-tab="grok">Grok Bot</a>
+      </nav>
+    </header>
+
+    <main id="stage">
+      <section id="show" class="panel is-on" aria-labelledby="show-title">
+        <div class="panel-head">
+          <h2 id="show-title">Home / Show</h2>
+          <p>
+            Fun imagery every step. Paper packets get a <code>paper_*</code> id
+            — never a fake <code>0x</code> hash.
+          </p>
+        </div>
+
+        <div class="stage-wrap">
+          <svg
+            class="spot"
+            viewBox="0 0 1200 160"
+            aria-hidden="true"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <radialGradient id="lamp" cx="50%" cy="0%" r="80%">
+                <stop offset="0%" stop-color="#ffe8a3" stop-opacity="0.55" />
+                <stop offset="100%" stop-color="#0b1020" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <ellipse cx="600" cy="20" rx="420" ry="140" fill="url(#lamp)" />
+          </svg>
+
+          <div class="ocean">
+            <div class="wave-stack" aria-hidden="true">
+              <div class="wave w1"></div>
+              <div class="wave w2"></div>
+              <div class="wave w3"></div>
+            </div>
+            <div class="lane">
+              <div class="bots" id="show-bots">
+                <article class="bot hitch" data-name="Hitch">
+                  <div class="bot-body">
+                    <span class="visor"></span>
+                    <span class="antenna"></span>
+                  </div>
+                  <div class="board"></div>
+                  <p class="caption">Ride the leftover!</p>
+                </article>
+                <article class="bot dedicated" data-name="Dedicated">
+                  <div class="bot-body">
+                    <span class="visor"></span>
+                    <span class="antenna"></span>
+                  </div>
+                  <div class="board"></div>
+                  <p class="caption">Dedicated store, value=0</p>
+                </article>
+                <article class="bot risk" data-name="Risk">
+                  <div class="bot-body">
+                    <span class="visor"></span>
+                    <span class="antenna"></span>
+                  </div>
+                  <div class="board"></div>
+                  <p class="caption">Hot key only. Vault cold.</p>
+                </article>
+              </div>
+              <div class="target" id="inject-target">
+                <div class="bullseye">
+                  <span>inject<br />target</span>
+                </div>
+                <p class="target-note">wave → calldata · credits pay storage</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bitboard">
+            <div class="bitboard-meta">
+              <h3>Sparse bit grid</h3>
+              <p id="grid-status">Empty stage. Paper inject lights a few cells.</p>
+            </div>
+            <div id="bit-grid" class="grid" role="img" aria-label="Sparse bit grid"></div>
+          </div>
+
+          <div class="desks">
+            <article class="vault card">
+              <h3>Vault · save jar</h3>
+              <div class="jar" aria-hidden="true">
+                <div class="lid"></div>
+                <div class="glass">
+                  <div id="vault-coins" class="coins"></div>
+                </div>
+                <span class="lock">🔒 never spends</span>
+              </div>
+              <p>
+                Save stays save. The vault address is never the signer. Gas
+                comes from the <em>hot / risk</em> key only.
+              </p>
+              <dl>
+                <div>
+                  <dt>Jar balance (paper)</dt>
+                  <dd id="vault-save">0.000 $STORE</dd>
+                </div>
+                <div>
+                  <dt>Spent from vault</dt>
+                  <dd>0 — always</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article class="risk card">
+              <h3>Risk desk</h3>
+              <div class="lights" aria-hidden="true">
+                <span id="light-margin" class="lamp ok">margin</span>
+                <span id="light-dd" class="lamp ok">drawdown</span>
+                <span id="light-kill" class="lamp">kill</span>
+              </div>
+              <dl>
+                <div>
+                  <dt>Mark / peak</dt>
+                  <dd id="risk-mark">1000 / 1000</dd>
+                </div>
+                <div>
+                  <dt>Net margin</dt>
+                  <dd id="risk-margin">0</dd>
+                </div>
+                <div>
+                  <dt>Drawdown</dt>
+                  <dd id="risk-dd">0%</dd>
+                </div>
+                <div>
+                  <dt>Desk note</dt>
+                  <dd id="risk-note">No guaranteed PnL. Paper does not invent fills.</dd>
+                </div>
+              </dl>
+            </article>
+          </div>
+
+          <div class="controls card">
+            <div class="control-row">
+              <button type="button" id="btn-paper-inject" class="primary">
+                Paper inject §$STORE§
+              </button>
+              <button type="button" id="btn-paper-tick" class="ghost">
+                Paper risk tick
+              </button>
+              <button type="button" id="btn-autoplay" class="ghost">
+                Play the show
+              </button>
+            </div>
+            <p class="fine">
+              In-browser only. Receipt id will be <code>paper_…</code>. Cost
+              chip stays <span class="stamp mini">DEMO</span> unless a real
+              hash is verified from your Railway.
+            </p>
+            <ol id="receipt-log" class="receipts" aria-live="polite"></ol>
+          </div>
+        </div>
+      </section>
+
+      <section id="surf" class="panel" hidden aria-labelledby="surf-title">
+        <div class="panel-head">
+          <h2 id="surf-title">Surf · hitch vs wipeout</h2>
+          <p>
+            Hitch payload must fit leftover bytes
+            (<code>payload ≤ leftover</code>). Paper waves only — leftover
+            budgets here are toys, not invented swaps.
+          </p>
+        </div>
+
+        <div class="surf-layout">
+          <div class="surf-stage card">
+            <div class="surf-ocean">
+              <div class="surf-wave" aria-hidden="true"></div>
+              <div id="surfer" class="surfer">
+                <div class="bot hitch small">
+                  <div class="bot-body">
+                    <span class="visor"></span>
+                    <span class="antenna"></span>
+                  </div>
+                  <div class="board"></div>
+                </div>
+                <p id="surf-callout" class="caption">Waiting for a set…</p>
+              </div>
+            </div>
+            <div class="sliders">
+              <label>
+                Leftover hitch budget (bytes)
+                <input
+                  id="leftover-bytes"
+                  type="range"
+                  min="8"
+                  max="128"
+                  step="8"
+                  value="64"
+                />
+                <output id="leftover-out">64 B</output>
+              </label>
+              <label>
+                Payload size (bytes)
+                <input
+                  id="payload-bytes"
+                  type="range"
+                  min="8"
+                  max="160"
+                  step="8"
+                  value="32"
+                />
+                <output id="payload-out">32 B</output>
+              </label>
+            </div>
+            <div class="control-row">
+              <button type="button" id="btn-surf-once" class="primary">
+                Send this wave
+              </button>
+              <button type="button" id="btn-surf-play" class="ghost">
+                Playback 12 paper waves
+              </button>
+              <button type="button" id="btn-surf-stop" class="ghost">
+                Stop
+              </button>
+            </div>
+          </div>
+
+          <aside class="scoreboard card">
+            <h3>Paper scoreboard</h3>
+            <dl class="score-dl">
+              <div>
+                <dt>Rides</dt>
+                <dd id="score-rides">0</dd>
+              </div>
+              <div>
+                <dt>Wipeouts</dt>
+                <dd id="score-wipes">0</dd>
+              </div>
+              <div>
+                <dt>Board (Thompson toy)</dt>
+                <dd id="score-arm">ehlers</dd>
+              </div>
+              <div>
+                <dt>sell_target</dt>
+                <dd id="score-target">fair + inject</dd>
+              </div>
+            </dl>
+            <p class="fine">
+              Arms: ehlers / rsi / macd / bb. Same spirit as
+              <code>POST /api/loop/tick</code>. No guaranteed PnL.
+            </p>
+            <ol id="surf-log" class="receipts" aria-live="polite"></ol>
+          </aside>
+        </div>
+      </section>
+
+      <section id="onboard" class="panel" hidden aria-labelledby="onboard-title">
+        <div class="panel-head">
+          <h2 id="onboard-title">Onboard wizard</h2>
+          <p>
+            Click through. No payment required to explore. Game’s Railway trial
+            is expired — visitors with a <strong>fresh Railway trial</strong>
+            can deploy free. Game walks this UI first, then upgrades Railway
+            later.
+          </p>
+        </div>
+
+        <ol class="steps" aria-label="Wizard progress">
+          <li><button type="button" data-step="0" class="is-on">A · Path</button></li>
+          <li><button type="button" data-step="1">B · Who</button></li>
+          <li><button type="button" data-step="2">C · Railway</button></li>
+          <li><button type="button" data-step="3">D · Health</button></li>
+          <li><button type="button" data-step="4">E · Live CDP</button></li>
+        </ol>
+
+        <div class="wizard card">
+          <article class="step is-on" data-step-panel="0">
+            <h3>Step A — Pick a path</h3>
+            <p>The switch UI. Sepolia is the honest test. Live Base needs a human CDP account.</p>
+            <div class="choice-grid">
+              <button type="button" class="choice is-on" data-path="sepolia">
+                <span class="choice-kicker">test</span>
+                <strong>Sepolia test</strong>
+                <span>MODE=base_sepolia · chainId 84532 · seed credits OK</span>
+              </button>
+              <button type="button" class="choice" data-path="live">
+                <span class="choice-kicker">gated</span>
+                <strong>Live Base + Coinbase CDP</strong>
+                <span>MODE=base_mainnet_guarded · confirmMainnet yes · no CEX</span>
+              </button>
+            </div>
+            <p id="path-hint" class="hint">
+              Sepolia first. Mainnet 8453 is refused until you confirm.
+            </p>
+          </article>
+
+          <article class="step" data-step-panel="1" hidden>
+            <h3>Step B — Who deploys?</h3>
+            <div class="choice-grid">
+              <button type="button" class="choice is-on" data-who="grok">
+                <span class="choice-kicker">easy</span>
+                <strong>Use Grok Bot</strong>
+                <span>Ask it to deploy StorageToken, set vars, hitch §$STORE§</span>
+              </button>
+              <button type="button" class="choice" data-who="diy">
+                <span class="choice-kicker">hands-on</span>
+                <strong>Do it myself on Railway</strong>
+                <span>Deploy from GitHub → paste env → Generate Domain</span>
+              </button>
+            </div>
+            <p id="who-hint" class="hint">
+              Grok Bot can walk Railway. Never paste a real private key into chat.
+            </p>
+          </article>
+
+          <article class="step" data-step-panel="2" hidden>
+            <h3>Step C — Railway one-click path</h3>
+            <ol class="howto">
+              <li>
+                Open
+                <a href="https://railway.app" target="_blank" rel="noreferrer"
+                  >railway.app</a
+                >
+                → <strong>New Project</strong> →
+                <strong>Deploy from GitHub</strong> →
+                <code>masterledgerlive/StorageToken</code>.
+              </li>
+              <li>Paste the env template (placeholders only). Never commit real keys.</li>
+              <li>
+                Settings → Networking → <strong>Generate Domain</strong>. Health
+                check is <code>GET /health</code>.
+              </li>
+            </ol>
+            <p class="fine">
+              Fresh Railway trials can do this for free. Game’s trial is expired;
+              Game is not paying Railway for your show.
+            </p>
+            <label class="block">
+              Env checklist (from <code>.env.example</code> /
+              <code>RAILWAY.md</code> / <code>COINBASE_LIVE_SWITCH.md</code>)
+              <textarea id="env-template" readonly rows="16"></textarea>
+            </label>
+            <button type="button" id="btn-copy-env" class="ghost">
+              Copy placeholders
+            </button>
+          </article>
+
+          <article class="step" data-step-panel="3" hidden>
+            <h3>Step D — Paste optional Railway URL</h3>
+            <p>
+              Paper works without this. Real inject only hits
+              <em>your</em> domain. If the browser CORS-blocks
+              <code>GET /health</code>, use curl, open in a new tab, or ask Grok
+              Bot.
+            </p>
+            <label class="block">
+              RAILWAY_URL
+              <input
+                id="railway-url"
+                type="url"
+                placeholder="https://YOUR-SERVICE.up.railway.app"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </label>
+            <div class="control-row">
+              <button type="button" id="btn-health" class="primary">
+                Health check GET /health
+              </button>
+              <a
+                id="health-tab"
+                class="ghost linkish"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+                hidden
+                >Open /health in new tab</a
+              >
+            </div>
+            <pre id="health-out" class="terminal" aria-live="polite">No check yet. Paper show does not need a URL.</pre>
+            <div id="cors-help" class="cors" hidden>
+              <p>
+                Browser could not read the response (often CORS). The service is
+                still fine if the new tab shows JSON.
+              </p>
+              <pre id="health-curl" class="terminal"></pre>
+              <p>
+                Or tell Grok Bot: <em>check GET /health on my Railway URL and
+                read mode, chainId, fundAddress, voice.</em>
+              </p>
+            </div>
+            <div id="live-inject-box" class="live-box" hidden>
+              <h4>Optional: inject from this browser</h4>
+              <p class="fine">
+                Only runs against the URL you pasted. If the API returns a mined
+                64-nibble <code>txHash</code>, that one receipt is labeled live.
+                We never invent a hash here.
+              </p>
+              <label class="block">
+                provider / creditPayer (public address placeholder)
+                <input
+                  id="payer-address"
+                  type="text"
+                  placeholder="0xYourPayer"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <button type="button" id="btn-live-inject" class="ghost">
+                POST /api/inject §$STORE§
+              </button>
+            </div>
+          </article>
+
+          <article class="step" data-step-panel="4" hidden>
+            <h3>Step E — Live Base + Coinbase CDP</h3>
+            <p>
+              Bots cannot do KYC. CEX Advanced Trade
+              <strong>cannot carry calldata</strong> — this service refuses
+              <code>cexAdvancedTrade</code>.
+            </p>
+            <ol class="howto">
+              <li>
+                Human KYC at
+                <a
+                  href="https://portal.cdp.coinbase.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >portal.cdp.coinbase.com</a
+                >. Download the API JSON offline.
+              </li>
+              <li>
+                Map keys on Railway as
+                <code>COINBASE_CDP_API_KEY</code>,
+                <code>COINBASE_CDP_API_SECRET</code>,
+                <code>COINBASE_CDP_WALLET_SECRET</code> (or old-guide aliases).
+                Never paste them into this site.
+              </li>
+              <li>
+                <code>GET /api/status</code> → <code>fundAddress</code> is the
+                hot injector. Fund it with Base ETH (network <strong>Base</strong>,
+                not Ethereum, not Sepolia). CDP faucet is Sepolia-only.
+                Payment is still <strong>$STORE credits</strong>.
+              </li>
+              <li>
+                Flip (in-memory; set Railway vars for a durable flip):
+              </li>
+            </ol>
+            <pre class="terminal">curl -s -X POST "$URL/api/mode" \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"base_mainnet_guarded","confirmMainnet":"yes"}'
+
+curl -s -X POST "$URL/api/switchboard" \
+  -H 'Content-Type: application/json' \
+  -d '{"entryPoint":"coinbase_onchain"}'</pre>
+            <p class="fine">
+              Vault ≠ fundAddress. Persist
+              <code>MODE</code>, <code>CONFIRM_MAINNET=yes</code>,
+              <code>BASE_RPC</code>, <code>ENTRY_POINT=coinbase_onchain</code>.
+              Credits are not seeded on guarded mainnet.
+            </p>
+          </article>
+
+          <div class="wizard-nav">
+            <button type="button" id="btn-prev" class="ghost">Back</button>
+            <button type="button" id="btn-next" class="primary">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="grok" class="panel" hidden aria-labelledby="grok-title">
+        <div class="panel-head">
+          <h2 id="grok-title">Grok Bot panel</h2>
+          <p>Short ask. No keys in chat. Secret voice is <code>§$STORE§</code>.</p>
+        </div>
+        <article class="card grok-card">
+          <h3>Paste this to your Grok Bot</h3>
+          <pre id="grok-prompt" class="terminal">Ask your Grok Bot to:
+
+1. Deploy StorageToken from github.com/masterledgerlive/StorageToken on Railway
+   (New Project → Deploy from GitHub → Generate Domain).
+2. Set vars from .env.example placeholders only. Never paste a real
+   INJECTOR_PRIVATE_KEY, JWT_SECRET, or COINBASE_CDP_* into chat — set them
+   in the Railway dashboard.
+3. Hitch §$STORE§ — $STORE credits are the only storage payment.
+   JWT is strand READ access, not money. Vault never spends save.
+4. CEX Advanced Trade cannot carry calldata. Use coinbase_onchain (CDP)
+   or base_dedicated. Default MODE=base_sepolia (84532).
+5. After health is 200, seed test credits and POST /api/inject the voice.
+   Hashes come from tx.wait() only. Paper ids stay paper_*.</pre>
+          <button type="button" id="btn-copy-grok" class="primary">Copy the ask</button>
+        </article>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>
+        MIT ·
+        <a href="https://github.com/masterledgerlive/StorageToken">source</a>
+        · Pages:
+        <a href="https://masterledgerlive.github.io/StorageToken/"
+          >masterledgerlive.github.io/StorageToken</a
+        >
+      </p>
+      <p class="fine">
+        No invented live tx hashes. Stripe out of scope. x402 / Kite stay stub-disabled.
+      </p>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

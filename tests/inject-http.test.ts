@@ -269,6 +269,21 @@ describe("HTTP inject uses receipt hashes only", () => {
     expect(body.balance).toBe((10n ** 18n).toString());
     expect(body.currency).toBe("STORE");
   });
+
+  it("CORS allows the public Pages show to health-check a visitor Railway URL", async () => {
+    const { base } = await seededApp();
+    const preflight = await fetch(`${base}/health`, {
+      method: "OPTIONS",
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+
+    const health = await fetch(`${base}/health`);
+    expect(health.headers.get("access-control-allow-origin")).toBe("*");
+    const body = await health.json();
+    expect(body.voice).toBe("§$STORE§");
+    expect(body.payment).toBe("$STORE credits only");
+  });
 });
 
 describe("source lock: handlers must not invent hashes", () => {

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#141a33"/>
+  <path d="M18 22h28v4H18z" fill="#c9a227"/>
+  <path d="M20 26h24v26c0 6-24 6-24 0V26z" fill="#7ee8fa" opacity=".35"/>
+  <circle cx="32" cy="40" r="7" fill="#f5c542"/>
+  <text x="32" y="16" text-anchor="middle" font-size="10" fill="#ffeaa7" font-family="ui-rounded,system-ui">§</text>
+</svg>
