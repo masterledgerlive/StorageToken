@@ -38,6 +38,33 @@ export function firstEnv(
   return undefined;
 }
 
+/** Guardian PEM secrets often arrive with literal `\n` sequences. */
+export function unescapeSecret(value?: string): string | undefined {
+  if (!value) return undefined;
+  return value.replace(/\\n/g, "\n");
+}
+
+/** Preferred StorageToken names, then guardian CDP_*, then old-guide aliases. */
+export const CDP_API_KEY_ALIASES = [
+  "COINBASE_CDP_API_KEY",
+  "COINBASE_CDP_API_KEY_ID",
+  "CDP_API_KEY_ID",
+  "COINBASE_API_KEY",
+] as const;
+
+export const CDP_API_SECRET_ALIASES = [
+  "COINBASE_CDP_API_SECRET",
+  "COINBASE_CDP_API_KEY_SECRET",
+  "CDP_API_KEY_SECRET",
+  "COINBASE_API_SECRET",
+] as const;
+
+export const CDP_WALLET_SECRET_ALIASES = [
+  "COINBASE_CDP_WALLET_SECRET",
+  "CDP_WALLET_SECRET",
+  "COINBASE_PRIVATE_KEY",
+] as const;
+
 export function isMainnetMode(mode: Mode): boolean {
   return mode === "base_mainnet_guarded" || mode === "full_live";
 }
@@ -69,7 +96,7 @@ export function switchHint(
   return `Live Base (8453) ${mode} with confirm. ${
     coinbaseOnchainReady
       ? "coinbase_onchain is ready — fund fundAddress and inject §$STORE§."
-      : "Set COINBASE_CDP_* (or COINBASE_API_KEY / COINBASE_API_SECRET / COINBASE_PRIVATE_KEY) for coinbase_onchain."
+      : "Set CDP_* (CDP_API_KEY_ID / CDP_API_KEY_SECRET / CDP_WALLET_SECRET) or COINBASE_CDP_* (or COINBASE_API_KEY / COINBASE_API_SECRET / COINBASE_PRIVATE_KEY) for coinbase_onchain."
   } Persist Railway MODE + CONFIRM_MAINNET=yes + BASE_RPC before restart.`;
 }
 
@@ -133,16 +160,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     defaultProvider: env.DEFAULT_PROVIDER || undefined,
     confirmMainnet: env.CONFIRM_MAINNET === "yes",
     coinbaseCdp: {
-      // Preferred names first; old coinbase-multi-injector guide aliases second.
-      apiKey: firstEnv(env, "COINBASE_CDP_API_KEY", "COINBASE_API_KEY"),
-      apiSecret: firstEnv(env, "COINBASE_CDP_API_SECRET", "COINBASE_API_SECRET"),
-      walletSecret: firstEnv(
-        env,
-        "COINBASE_CDP_WALLET_SECRET",
-        "COINBASE_PRIVATE_KEY"
-      ),
-      projectId: firstEnv(env, "COINBASE_CDP_PROJECT_ID"),
-      address: firstEnv(env, "COINBASE_CDP_ADDRESS"),
+      // Preferred names, then guardian CDP_*, then old coinbase-multi-injector aliases.
+      apiKey: firstEnv(env, ...CDP_API_KEY_ALIASES),
+      apiSecret: unescapeSecret(firstEnv(env, ...CDP_API_SECRET_ALIASES)),
+      walletSecret: unescapeSecret(firstEnv(env, ...CDP_WALLET_SECRET_ALIASES)),
+      projectId: firstEnv(env, "COINBASE_CDP_PROJECT_ID", "CDP_PROJECT_ID"),
+      address: firstEnv(env, "COINBASE_CDP_ADDRESS", "CDP_ADDRESS"),
     },
     telegram: {
       botToken: env.TELEGRAM_BOT_TOKEN || undefined,

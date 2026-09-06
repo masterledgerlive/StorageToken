@@ -87,6 +87,36 @@ afterEach(async () => {
 });
 
 describe("alias env parsing", () => {
+  it("maps guardian CDP_* names into coinbaseCdp and health", async () => {
+    const hot = Wallet.createRandom();
+    const cfg = loadConfig({
+      CDP_API_KEY_ID: "guardian-key",
+      CDP_API_KEY_SECRET: "-----BEGIN\\nKEY\\n-----",
+      CDP_WALLET_SECRET: hot.privateKey,
+    });
+    expect(cfg.coinbaseCdp.apiKey).toBe("guardian-key");
+    expect(cfg.coinbaseCdp.apiSecret).toBe("-----BEGIN\nKEY\n-----");
+    expect(cfg.coinbaseCdp.walletSecret).toBe(hot.privateKey);
+    expect(coinbaseCdpReady(cfg)).toBe(true);
+    expect(resolveFundAddress(cfg)).toBe(hot.address);
+
+    const { app } = await createApp({
+      config: loadConfig({
+        MODE: "base_sepolia",
+        JWT_SECRET: "test-secret",
+        CDP_API_KEY_ID: "guardian-key",
+        CDP_API_KEY_SECRET: "guardian-secret",
+        CDP_WALLET_SECRET: hot.privateKey,
+      }),
+      adapter: mockAdapter(),
+    });
+    const { server, base } = await listen(app);
+    servers.push(server);
+    const health = await (await fetch(`${base}/health`)).json();
+    expect(health.coinbaseOnchainReady).toBe(true);
+    expect(health.fundAddress).toBe(hot.address);
+  });
+
   it("maps old-guide names into coinbaseCdp", () => {
     const hot = Wallet.createRandom();
     const cfg = loadConfig({

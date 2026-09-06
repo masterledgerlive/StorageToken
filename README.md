@@ -27,6 +27,7 @@ These were **merged**, not pretended to already live in one repo:
 | Origin `gamemasters/agent-genesis` (cloud agent `bc-e37bda11`) | `$STORE` = StoreToken (router-only mint, bytes-based emission) + ShadowWeaveRouter (LIBM hitch on a **REAL** leftover **or** dedicated storage tx — never invent a swap). Modes `paper \| base_sepolia \| base_mainnet_guarded \| full_live`. Signals Ehlers / RSI / MACD / BB, net-margin / drawdown kills, Thompson sampling. JWT = READ. x402 / Kite stub-flagged. | **Unreachable** (GitHub 404; agent not accessible). Surfaces **reconstructed from this spec**. |
 | [`masterledgerlive/injection-service` PR #1](https://github.com/masterledgerlive/injection-service/pull/1) (`cursor/base-sepolia-inject-v0-641e`) | Real Base Sepolia calldata inject: `POST /api/inject` → send calldata, `to=provider` (or router), JWT receipt with **mined** `txHash`, `GET /api/injection/:id` from an in-memory `Map` only (no `Math.random`). | **Ported**. |
 | Paper learnings | `sell_target = fair_exit + inject_cost`; hitch max that clears leftover; secret voice `§$STORE§`; Coinbase **CEX Advanced Trade cannot carry calldata**. | **Implemented**. |
+| [`masterledgerlive/guardian-protocol-agent`](https://github.com/masterledgerlive/guardian-protocol-agent) | Coinbase CDP SDK (`CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET`), bitstorage hitch-on-real-tx / LIBM append, env-gated Telegram inject alerts, GeckoTerminal + DexScreener USD for wave hitch sizing (fail closed, never silent `$0`). **Not** the buy/sell wave trading loop. | **Ported** (storage / CDP only). |
 
 ## Architecture
 
@@ -39,7 +40,7 @@ Game / Grok Bot / agents
    ├─ $STORE credit ledger (mirrors StoreToken.sol)
    ├─ leftover registry (real swap receipts only)
    ├─ JWT TokenManager (READ, not money)
-   └─ ethers injector (hot/risk key only)
+   └─ ethers injector / Coinbase CDP (hot/risk key only)
         │
         ▼
  Base Sepolia 84532
@@ -55,7 +56,7 @@ Game / Grok Bot / agents
 | --- | --- | --- |
 | `base_dedicated` | yes (default) | Dedicated storage tx — ethers calldata to router (or provider if undeployed). |
 | `uniswap_hitch` | yes, gated | Hitch on **OUR** Uniswap/Base leftover. Requires a leftover registered from a **mined** swap receipt. Never invents a swap. Payload ≤ leftover bytes. |
-| `coinbase_onchain` | if `COINBASE_CDP_*` **or** old-guide `COINBASE_API_KEY` + `COINBASE_API_SECRET` + (`COINBASE_PRIVATE_KEY` or `COINBASE_CDP_PROJECT_ID`) | Coinbase CDP / Base wallet on-chain calldata. **Not** CEX Advanced Trade. |
+| `coinbase_onchain` | if `CDP_*` **or** `COINBASE_CDP_*` **or** old-guide `COINBASE_API_KEY` + `COINBASE_API_SECRET` + (`COINBASE_PRIVATE_KEY` or `COINBASE_CDP_PROJECT_ID`) | Coinbase CDP / Base wallet on-chain calldata. **Not** CEX Advanced Trade. |
 | `wave_first`, `gap_fill`, `priority_express` | **stub / paper policy** | Desk can simulate. Switchboard will not enable them as senders. |
 | `multi_chain_cheapest` | **stub — disabled** | Base only today. No multi-chain quote. |
 | `x402`, `kite` | **stub — disabled** | Future. Stay off even if env flags are true. |
@@ -97,7 +98,8 @@ Base URL = Railway domain. JSON in / JSON out.
 | `GET` | `/api/credits/:address` | $STORE balance |
 | `POST` | `/api/credits/seed` | Testnet/paper faucet (blocked on guarded mainnet) |
 | `POST` | `/api/leftover` | Register leftover from a **real** receipt |
-| `POST` | `/api/quote` | Bytes → credit cost + `sell_target` |
+| `GET` | `/api/price` | Live ETH/token USD (GeckoTerminal → DexScreener). Missing quote → 502, never `$0`. |
+| `POST` | `/api/quote` | Bytes → credit cost + `sell_target`. With `needUsd` / `tokenAddress` / `usdBudget`, hitch USD fails closed. |
 | `POST` | `/api/loop/tick` | Paper signals / Thompson / risk kills |
 
 ### Inject body

@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   assertHitchFits,
+  assertPositiveUsd,
   costForBytes,
   emissionForBytes,
+  hitchBytesFromUsdBudget,
+  hitchGasUsd,
   hitchMax,
+  measureHitchWave,
+  quoteHitchWave,
   sellTarget,
 } from "../src/credits/pricing.js";
 import { CreditLedger } from "../src/credits/ledger.js";
@@ -18,6 +23,34 @@ describe("paper learnings", () => {
     expect(hitchMax(64)).toBe(64);
     expect(() => assertHitchFits(65, 64)).toThrow(/exceeds leftover/);
     expect(() => assertHitchFits(64, 64)).not.toThrow();
+  });
+
+  it("hitch USD sizing fails closed — never silent $0", () => {
+    expect(() => assertPositiveUsd(0, "ETH")).toThrow(/refusing silent \$0/);
+    expect(() => assertPositiveUsd(undefined, "token")).toThrow(/refusing silent \$0/);
+    expect(() => hitchGasUsd(64, 0, 0.02)).toThrow(/refusing silent \$0/);
+    expect(() => hitchGasUsd(64, 3000, 0)).toThrow(/gasPriceGwei/);
+    const usd = hitchGasUsd(64, 3000, 0.02);
+    expect(usd).toBeGreaterThan(0);
+    expect(hitchBytesFromUsdBudget(1, 3000, 0.02)).toBeGreaterThan(0);
+    expect(() => hitchBytesFromUsdBudget(1e-18, 3000, 50)).toThrow(/too small|silent \$0/);
+    const wave = measureHitchWave({
+      leftoverBytes: 64,
+      payloadBytes: 32,
+      ethUsd: 3000,
+      gasPriceGwei: 0.02,
+    });
+    expect(wave.fits).toBe(true);
+    expect(wave.hitchUsd).toBeGreaterThan(0);
+    expect(wave.ethUsd).toBe(3000);
+    expect(() =>
+      quoteHitchWave({
+        leftoverBytes: 16,
+        payloadBytes: 64,
+        ethUsd: 3000,
+        gasPriceGwei: 0.02,
+      })
+    ).toThrow(/exceeds leftover/);
   });
 
   it("credits cost matches router words", () => {

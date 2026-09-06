@@ -32,7 +32,7 @@ Save stays save.
 
 Coinbase **CEX Advanced Trade cannot carry calldata**. This service refuses `cexAdvancedTrade` / `coinbaseAdvancedTrade` on inject, leftover, and broker bodies.
 
-Live Coinbase path is **`coinbase_onchain`** (CDP / Base wallet) only, and only when `COINBASE_CDP_*` (or the documented old-guide aliases) are present. See [COINBASE_LIVE_SWITCH.md](../COINBASE_LIVE_SWITCH.md).
+Live Coinbase path is **`coinbase_onchain`** (CDP / Base wallet) only, and only when `CDP_*` / `COINBASE_CDP_*` (or the documented old-guide aliases) are present. See [COINBASE_LIVE_SWITCH.md](../COINBASE_LIVE_SWITCH.md). WAVE hitch USD quotes use GeckoTerminal then DexScreener and fail closed if price is missing.
 
 ## Avenues (honest)
 
