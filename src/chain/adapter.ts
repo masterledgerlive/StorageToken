@@ -2,9 +2,11 @@ import { ethers } from "ethers";
 import { assertModeAllowsChain } from "../config.js";
 import { assertNotMockedHash } from "../payload.js";
 import {
+  BASE_MAINNET_CHAIN_ID,
   BASE_SEPOLIA_CHAIN_ID,
   BASE_SEPOLIA_RPC_DEFAULT,
   DEFAULT_CHAIN,
+  MAINNET_CHAIN,
   MAINNET_CHAIN_IDS,
   type Chain,
   type InjectionResult,
@@ -44,8 +46,8 @@ export class BlockchainAdapter {
         explorerUrl: "https://sepolia.basescan.org",
       },
       {
-        name: "base",
-        chainId: 8453,
+        name: MAINNET_CHAIN,
+        chainId: BASE_MAINNET_CHAIN_ID,
         rpcUrl: rpcOverrides?.base || process.env.BASE_RPC || "",
         explorerUrl: "https://basescan.org",
       },

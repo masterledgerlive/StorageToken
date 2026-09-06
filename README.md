@@ -41,10 +41,12 @@ Game / Grok Bot / agents
 | --- | --- | --- |
 | `base_dedicated` | yes (default) | Dedicated storage tx — ethers calldata to router (or provider if undeployed). |
 | `uniswap_hitch` | yes, gated | Hitch on **OUR** Uniswap/Base leftover. Requires a leftover registered from a **mined** swap receipt. Never invents a swap. Payload ≤ leftover bytes. |
-| `coinbase_onchain` | if `COINBASE_CDP_*` present | Coinbase CDP / Base wallet path. **Not** CEX Advanced Trade. |
+| `coinbase_onchain` | if `COINBASE_CDP_*` **or** old-guide `COINBASE_API_KEY` + `COINBASE_API_SECRET` + (`COINBASE_PRIVATE_KEY` or `COINBASE_CDP_PROJECT_ID`) | Coinbase CDP / Base wallet on-chain calldata. **Not** CEX Advanced Trade. |
 | `x402`, `kite` | **stub — disabled** | Future. Stay off even if env flags are true. |
 
-`GET /api/switchboard` · `POST /api/switchboard` `{ "entryPoint": "base_dedicated" }`
+`GET /api/switchboard` · `POST /api/switchboard` `{ "entryPoint": "coinbase_onchain" }`
+
+Sepolia → live Base: **[COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md)**. `GET /api/status` shows `fundAddress` (hot injector to fund), `network`, `chainId`, `coinbaseOnchainReady`, and `switchHint`.
 
 ## Modes
 
@@ -54,8 +56,10 @@ Default **`MODE=base_sepolia`**.
 | --- | --- | --- |
 | `paper` | no — returns `paper_*` ids, **never** a fake `0x` hash | n/a |
 | `base_sepolia` | yes, chainId **84532** only | **refused** |
-| `base_mainnet_guarded` | only if `CONFIRM_MAINNET=yes` | gated |
-| `full_live` | live paths | still no invented fills |
+| `base_mainnet_guarded` | only if `CONFIRM_MAINNET=yes` (env or `POST /api/mode`) | gated |
+| `full_live` | live paths | same 8453 confirm gate; still no invented fills |
+
+`POST /api/mode` `{ "mode": "base_mainnet_guarded", "confirmMainnet": "yes" }` flips this process in memory. Railway `MODE` / `CONFIRM_MAINNET` / `BASE_RPC` remain the source of truth on restart.
 
 ## HTTP API (Grok Bot / agents)
 
@@ -63,8 +67,9 @@ Base URL = Railway domain. JSON in / JSON out.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Liveness, mode, voice, payment rule |
-| `GET` | `/api/status` | Addresses, leftover count, hot key (no secrets) |
+| `GET` | `/health` | Liveness, mode, network, `fundAddress`, `modeApi`, voice, payment rule |
+| `GET` | `/api/status` | `fundAddress`, `network`, `chainId`, `mode`, `entryPoint`, `coinbaseOnchainReady`, `switchHint` |
+| `POST` | `/api/mode` | In-memory mode flip. Mainnet requires `confirmMainnet:"yes"` + `BASE_RPC`. |
 | `GET`/`POST` | `/api/switchboard` | Feature flags |
 | `POST` | `/api/inject` | Store `§$STORE§` (or any bytes). Pays **credits**. Returns receipt hash or `paperId`. |
 | `GET` | `/api/injection/:id` | Map only. Unknown id → **404**, no invented hash |
@@ -130,6 +135,8 @@ pnpm dev
 ## Railway
 
 See **[RAILWAY.md](./RAILWAY.md)** — create project → set vars → deploy → curl inject → fund Sepolia → graduate modes.
+
+Live Base + CDP: **[COINBASE_LIVE_SWITCH.md](./COINBASE_LIVE_SWITCH.md)**.
 
 ## Out of scope
 
