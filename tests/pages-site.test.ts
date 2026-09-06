@@ -8,9 +8,11 @@ const web = (name: string) => readFileSync(join(root, "web", name), "utf8");
 
 const LIVE_HASH = /0x[0-9a-fA-F]{64}/;
 
-describe("public Pages show stays paper-honest", () => {
-  it("ships the static carnival files", () => {
+describe("public Pages desk stays paper-honest", () => {
+  it("ships the neon $STORE Desk / STORE FLOOR", () => {
     const html = web("index.html");
+    expect(html).toContain("$STORE Desk");
+    expect(html).toContain("STORE FLOOR");
     expect(html).toContain("§$STORE§");
     expect(html).toContain("DEMO");
     expect(html).toContain("Vault · save jar");
@@ -26,6 +28,40 @@ describe("public Pages show stays paper-honest", () => {
     expect(html).toContain("https://masterledgerlive.github.io/StorageToken/");
     expect(html).toContain("./app.js");
     expect(html).toContain("./styles.css");
+    expect(html).toContain("WAVE");
+    expect(html).toContain("SPARSE");
+    expect(html).toContain("BROKER");
+    expect(html).toContain("RISK");
+    expect(html).toContain("VAULT");
+    expect(html).toContain("INJECT");
+    expect(html).toContain("RETRIEVE");
+    expect(html).toContain("PROOF");
+    expect(html).toContain("base_dedicated");
+    expect(html).toContain("uniswap_hitch");
+    expect(html).toContain("coinbase_onchain");
+    expect(html).toContain("wave_first");
+    expect(html).toContain("gap_fill");
+    expect(html).toContain("priority_express");
+    expect(html).toContain("multi_chain_cheapest");
+    expect(html).toContain("galleonlabs/hypergrok-trading-desk");
+    expect(html).toContain("lock-first");
+    expect(html).toMatch(/<title>\$STORE Desk/);
+    expect(html).not.toMatch(/<title>[^<]*(GROKTOPUS|Ridark)/i);
+    expect(html).toMatch(/<h1>STORE <span class="voice">FLOOR<\/span><\/h1>/);
+  });
+
+  it("does not brand the product as GROKTOPUS or Ridark", () => {
+    const html = web("index.html");
+    const js = web("app.js");
+    const css = web("styles.css");
+    for (const text of [html, js, css]) {
+      expect(text).not.toMatch(/id=["']groktopus/i);
+      expect(text).not.toMatch(/brand=["']ridark/i);
+    }
+    expect(html).not.toMatch(/<title>[^<]*GROKTOPUS/i);
+    expect(html).not.toMatch(/<title>[^<]*Ridark/i);
+    expect(html).toContain("no GROKTOPUS");
+    expect(html).toContain("no Ridark");
   });
 
   it("does not embed an invented live tx hash", () => {
@@ -34,7 +70,6 @@ describe("public Pages show stays paper-honest", () => {
     const css = web("styles.css");
     expect(html).not.toMatch(LIVE_HASH);
     expect(css).not.toMatch(LIVE_HASH);
-    // The checker regex itself is allowed; a literal 64-nibble hash is not.
     const literals = js.match(LIVE_HASH) || [];
     expect(literals).toEqual([]);
     expect(js).toContain("paper_");
@@ -46,7 +81,6 @@ describe("public Pages show stays paper-honest", () => {
 
   it("paper helpers never mint a 0x receipt", async () => {
     const { pathToFileURL } = await import("node:url");
-    // Load as a browser-ish IIFE via Function + stub DOM.
     const js = web("app.js");
     const fake = makeDom();
     const run = new Function("document", "window", "localStorage", "crypto", "history", "location", js);
@@ -58,9 +92,38 @@ describe("public Pages show stays paper-honest", () => {
       costForBytes: (n: number) => bigint;
       hitchFits: (a: number, b: number) => boolean;
       sellTarget: (a: number, b: number) => number;
+      creditsForSlot: (kind: string, n: number) => bigint;
+      lockFirstFill: (slot: Record<string, unknown>) => { paperId: string; txHash: null };
+      AVENUES: { id: string; stub: boolean }[];
+      SEATS: string[];
       STORE_VOICE: string;
     };
     expect(api.STORE_VOICE).toBe("§$STORE§");
+    expect(api.SEATS).toEqual([
+      "WAVE",
+      "SPARSE",
+      "BROKER",
+      "RISK",
+      "VAULT",
+      "INJECT",
+      "RETRIEVE",
+      "PROOF",
+    ]);
+    expect(api.AVENUES.map((a) => a.id)).toEqual([
+      "base_dedicated",
+      "uniswap_hitch",
+      "coinbase_onchain",
+      "wave_first",
+      "gap_fill",
+      "priority_express",
+      "multi_chain_cheapest",
+    ]);
+    expect(api.AVENUES.filter((a) => a.stub).map((a) => a.id)).toEqual([
+      "wave_first",
+      "gap_fill",
+      "priority_express",
+      "multi_chain_cheapest",
+    ]);
     for (let i = 0; i < 20; i++) {
       const id = api.paperId();
       expect(id).toMatch(/^paper_[0-9a-f]{16}$/);
@@ -72,6 +135,8 @@ describe("public Pages show stays paper-honest", () => {
     expect(api.hitchFits(32, 64)).toBe(true);
     expect(api.hitchFits(80, 64)).toBe(false);
     expect(api.sellTarget(1, 0.001)).toBeCloseTo(1.001);
+    expect(api.creditsForSlot("priority_express", 32)).toBe(api.creditsForSlot("gap_fill", 32) * 3n);
+    expect(() => api.lockFirstFill({ locked: false })).toThrow(/lock-first/);
     void pathToFileURL;
   });
 });
@@ -122,6 +187,7 @@ class FakeEl {
     contains: () => false,
   };
   style: Record<string, string> = {};
+  dataset: Record<string, string> = {};
   constructor(id: string) {
     this.id = id;
   }

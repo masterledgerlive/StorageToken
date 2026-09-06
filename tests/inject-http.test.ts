@@ -260,6 +260,17 @@ describe("HTTP inject uses receipt hashes only", () => {
       body: JSON.stringify({ entryPoint: "kite" }),
     });
     expect(post.status).toBe(400);
+
+    const wave = await fetch(`${base}/api/switchboard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entryPoint: "wave_first" }),
+    });
+    expect(wave.status).toBe(400);
+    expect(board.flags.wave_first.stub).toBe(true);
+    expect(board.flags.gap_fill.enabled).toBe(false);
+    expect(board.flags.priority_express.enabled).toBe(false);
+    expect(board.flags.multi_chain_cheapest.enabled).toBe(false);
   });
 
   it("credits balance endpoint", async () => {

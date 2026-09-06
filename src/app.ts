@@ -25,13 +25,18 @@ import {
 } from "./switchboard/index.js";
 import { runtimePublicFields } from "./status.js";
 import {
+  ENTRY_POINTS,
+  MODES,
   STORE_VOICE,
+  STUB_ENTRY_POINTS,
   type EntryPoint,
   type InjectionRecord,
   type Mode,
 } from "./types.js";
 import { notifyTelegram } from "./alerts/telegram.js";
-import { ENTRY_POINTS, MODES } from "./types.js";
+import { deskAvenueCatalog } from "./avenues.js";
+import { injectIsSoleWriter, seatCatalog } from "./seats.js";
+import { PaperBroker, type SlotKind } from "./broker/paper.js";
 
 export interface CreateAppOptions {
   config?: AppConfig;
@@ -40,6 +45,7 @@ export interface CreateAppOptions {
   ledger?: CreditLedger;
   leftovers?: LeftoverRegistry;
   injectionStore?: InjectionStore;
+  broker?: PaperBroker;
 }
 
 export interface CreatedApp {
@@ -51,6 +57,7 @@ export interface CreatedApp {
   leftovers: LeftoverRegistry;
   config: AppConfig;
   paper: PaperLoop;
+  broker: PaperBroker;
 }
 
 function serializeRecord(record: InjectionRecord) {
@@ -80,6 +87,8 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
   const ledger = options.ledger ?? new CreditLedger();
   const leftovers = options.leftovers ?? new LeftoverRegistry();
   const paper = new PaperLoop();
+  const broker = options.broker ?? new PaperBroker();
+  broker.seedDemoBook();
 
   let switchboard = buildSwitchboard(config);
 
@@ -155,15 +164,98 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
     res.json(switchboard);
   });
 
+  app.get("/api/avenues", (_req, res) => {
+    res.json({
+      selected: switchboard.entryPoint,
+      avenues: deskAvenueCatalog().map((row) => ({
+        ...row,
+        enabled: Boolean(switchboard.flags[row.id]?.enabled),
+        switchReason: switchboard.flags[row.id]?.reason ?? row.reason,
+      })),
+      note: "Only base_dedicated, uniswap_hitch, and coinbase_onchain can send. Other avenues are honest stubs or paper policy.",
+    });
+  });
+
+  app.get("/api/seats", (_req, res) => {
+    res.json({
+      floor: "STORE FLOOR",
+      desk: "$STORE Desk",
+      companion:
+        "https://github.com/galleonlabs/hypergrok-trading-desk — trading seats only. Do not import those seats onto STORE FLOOR.",
+      injectSoleWriter: injectIsSoleWriter(),
+      seats: seatCatalog(),
+    });
+  });
+
+  app.get("/api/broker/book", (_req, res) => {
+    res.json({
+      market: "paper",
+      currency: "STORE",
+      lockFirst: true,
+      vaultSpends: false,
+      slots: broker.book(),
+      note: "Paper open-market book. Slot ids are paper_slot_*. No chain hashes.",
+    });
+  });
+
+  app.post("/api/broker/offer", (req, res) => {
+    try {
+      if (req.body?.txHash || req.body?.cexAdvancedTrade) {
+        return res.status(400).json({
+          error: "Broker paper refuses client txHash and CEX Advanced Trade",
+        });
+      }
+      const kind = req.body?.kind as SlotKind;
+      const leftoverBytes = Number(req.body?.leftoverBytes);
+      const slot = broker.offer(kind, leftoverBytes);
+      res.json({ market: "paper", slot, txHash: null });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "offer refused",
+      });
+    }
+  });
+
+  app.post("/api/broker/lock", (req, res) => {
+    try {
+      if (req.body?.txHash) {
+        return res.status(400).json({ error: "Do not supply txHash — paper lock only" });
+      }
+      const slotId = String(req.body?.slotId ?? "");
+      const lock = broker.lock(slotId);
+      res.json({ market: "paper", lock, txHash: null, note: "lock-first — fill requires this lockId" });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "lock refused",
+      });
+    }
+  });
+
+  app.post("/api/broker/fill", (req, res) => {
+    try {
+      if (req.body?.txHash) {
+        return res.status(400).json({ error: "Do not supply txHash — paper fill only" });
+      }
+      const lockId = String(req.body?.lockId ?? "");
+      const fill = broker.fill(lockId);
+      res.json({ market: "paper", ...fill });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "fill refused",
+      });
+    }
+  });
+
   app.post("/api/switchboard", (req, res) => {
     const next = req.body?.entryPoint as EntryPoint | undefined;
     if (!next || !ENTRY_POINTS.includes(next)) {
       return res.status(400).json({ error: "Invalid entryPoint" });
     }
-    if (next === "x402" || next === "kite") {
+    if (STUB_ENTRY_POINTS.includes(next)) {
       return res.status(400).json({
         error: `${next} is stub-flagged and stays disabled`,
         switchboard,
+        avenue: deskAvenueCatalog().find((a) => a.id === next) ?? null,
       });
     }
     switchboard = buildSwitchboard(config, next);
@@ -462,6 +554,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
     leftovers,
     config,
     paper,
+    broker,
   };
 }
 

@@ -20,10 +20,25 @@ export const ENTRY_POINTS = [
   "base_dedicated",
   "uniswap_hitch",
   "coinbase_onchain",
+  "wave_first",
+  "gap_fill",
+  "priority_express",
+  "multi_chain_cheapest",
   "x402",
   "kite",
 ] as const;
 export type EntryPoint = (typeof ENTRY_POINTS)[number];
+
+/** Avenues the public $STORE Desk picker lists (x402 / kite stay switchboard-only stubs). */
+export const DESK_AVENUES: readonly EntryPoint[] = [
+  "base_dedicated",
+  "uniswap_hitch",
+  "coinbase_onchain",
+  "wave_first",
+  "gap_fill",
+  "priority_express",
+  "multi_chain_cheapest",
+];
 
 export const LIVE_ENTRY_POINTS: readonly EntryPoint[] = [
   "base_dedicated",
@@ -31,7 +46,26 @@ export const LIVE_ENTRY_POINTS: readonly EntryPoint[] = [
   "coinbase_onchain",
 ];
 
-export const STUB_ENTRY_POINTS: readonly EntryPoint[] = ["x402", "kite"];
+export const STUB_ENTRY_POINTS: readonly EntryPoint[] = [
+  "wave_first",
+  "gap_fill",
+  "priority_express",
+  "multi_chain_cheapest",
+  "x402",
+  "kite",
+];
+
+export const STORE_FLOOR_SEATS = [
+  "WAVE",
+  "SPARSE",
+  "BROKER",
+  "RISK",
+  "VAULT",
+  "INJECT",
+  "RETRIEVE",
+  "PROOF",
+] as const;
+export type StoreFloorSeat = (typeof STORE_FLOOR_SEATS)[number];
 
 export interface Chain {
   name: string;

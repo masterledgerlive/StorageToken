@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>StorageToken Show — §$STORE§ paper carnival</title>
+    <title>$STORE Desk — STORE FLOOR</title>
     <meta
       name="description"
-      content="Free public StorageToken show. Paper/DEMO in the browser. Real inject only from your Railway URL. $STORE credits only."
+      content="$STORE Desk / STORE FLOOR. Neon storage-inject desk. Paper/DEMO in the browser. Real inject only from your Railway URL. $STORE credits only."
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <a class="skip" href="#stage">Skip to show</a>
+    <a class="skip" href="#stage">Skip to desk</a>
 
     <div id="demo-banner" class="demo-banner" role="status">
       <span class="stamp">DEMO</span>
@@ -24,52 +24,169 @@
     </div>
 
     <header class="top">
-      <div class="brand">
-        <span class="logo" aria-hidden="true">🫙</span>
-        <div>
-          <p class="eyebrow">masterledgerlive / StorageToken</p>
-          <h1>The <span class="voice">§$STORE§</span> Show</h1>
+      <div class="brand-row">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="42" height="42">
+              <polygon points="24,4 42,14 42,34 24,44 6,34 6,14" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="18" cy="22" r="2.2"/>
+              <circle cx="30" cy="22" r="2.2"/>
+              <rect x="16" y="30" width="16" height="2" rx="1"/>
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">$STORE Desk · masterledgerlive / StorageToken</p>
+            <h1>STORE <span class="voice">FLOOR</span></h1>
+          </div>
+        </div>
+        <div class="chips" aria-label="Desk status">
+          <span class="chip">MODE <strong id="chip-mode">PAPER</strong></span>
+          <span class="chip">VAULT <strong>COLD</strong></span>
+          <span class="chip">SEATS <strong>8</strong></span>
+          <span class="chip dim">NOT A TRADING DESK</span>
         </div>
       </div>
       <p class="lede">
-        Watch cartoon bots hitch a wave, fill a sparse bit grid, and guard a
-        save jar that <strong>never spends</strong>. Explore Sepolia or live
-        Coinbase CDP onboarding — credits only, no Game Railway bill.
+        Storage inject command floor. Eight narrow seats around the locker core.
+        Explore Sepolia or live Coinbase CDP onboarding — credits only, no Game
+        Railway bill. Vault <strong>never spends</strong>.
       </p>
-      <nav class="tabs" aria-label="Show sections">
-        <a href="#show" data-tab="show" class="is-on">Show</a>
+      <nav class="tabs" aria-label="Desk sections">
+        <a href="#show" data-tab="show" class="is-on">Floor</a>
+        <a href="#avenues" data-tab="avenues">Avenues</a>
+        <a href="#broker" data-tab="broker">Broker</a>
         <a href="#surf" data-tab="surf">Surf</a>
         <a href="#onboard" data-tab="onboard">Onboard</a>
-        <a href="#grok" data-tab="grok">Grok Bot</a>
+        <a href="#grok" data-tab="grok">Seats</a>
       </nav>
     </header>
 
     <main id="stage">
       <section id="show" class="panel is-on" aria-labelledby="show-title">
         <div class="panel-head">
-          <h2 id="show-title">Home / Show</h2>
+          <h2 id="show-title">$STORE Desk / STORE FLOOR</h2>
           <p>
             Fun imagery every step. Paper packets get a <code>paper_*</code> id
-            — never a fake <code>0x</code> hash.
+            — never a fake <code>0x</code> hash. INJECT is the sole writer.
           </p>
         </div>
 
-        <div class="stage-wrap">
-          <svg
-            class="spot"
-            viewBox="0 0 1200 160"
-            aria-hidden="true"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <radialGradient id="lamp" cx="50%" cy="0%" r="80%">
-                <stop offset="0%" stop-color="#ffe8a3" stop-opacity="0.55" />
-                <stop offset="100%" stop-color="#0b1020" stop-opacity="0" />
-              </radialGradient>
-            </defs>
-            <ellipse cx="600" cy="20" rx="420" ry="140" fill="url(#lamp)" />
-          </svg>
+        <div class="metrics">
+          <article class="metric">
+            <p class="metric-kicker">Paper credits · save</p>
+            <p class="metric-value" id="metric-credits">0.000000 $STORE</p>
+            <p class="metric-sub">SEED paper · vault spent <strong>0 — always</strong></p>
+          </article>
+          <article class="metric">
+            <p class="metric-kicker">Paper injects</p>
+            <p class="metric-value neon" id="metric-injects">0</p>
+            <p class="metric-sub">voice §$STORE§ · DEMO until mined hash</p>
+          </article>
+          <article class="metric">
+            <p class="metric-kicker">Hitch ride rate</p>
+            <p class="metric-value amber" id="metric-rides">—</p>
+            <p class="metric-sub">payload ≤ leftover · paper waves</p>
+          </article>
+          <article class="metric">
+            <p class="metric-kicker">Avenue</p>
+            <p class="metric-value cyan" id="metric-avenue">base_dedicated</p>
+            <p class="metric-sub" id="metric-avenue-note">Live sender · Base calldata</p>
+          </article>
+        </div>
 
+        <div class="desk-grid">
+          <div class="reef card">
+            <div class="reef-meta">
+              <h3>STORE FLOOR · locker core</h3>
+              <p>8 seats · INJECT sole writer · 0 trading seats</p>
+            </div>
+            <div class="reef-stage" id="reef">
+              <div class="core" id="floor-core">
+                <svg viewBox="0 0 120 120" class="mascot" aria-hidden="true">
+                  <polygon points="60,8 108,34 108,86 60,112 12,86 12,34" fill="none" stroke="#3df0ff" stroke-width="1.8"/>
+                  <polygon points="60,22 96,42 96,78 60,98 24,78 24,42" fill="#071018" stroke="#7cff6b" stroke-width="1"/>
+                  <circle cx="46" cy="58" r="5" fill="#05070c" stroke="#7cff6b" stroke-width="2"/>
+                  <circle cx="74" cy="58" r="5" fill="#05070c" stroke="#7cff6b" stroke-width="2"/>
+                  <rect x="42" y="74" width="36" height="5" rx="2" fill="#ffb020"/>
+                </svg>
+                <p class="core-name">STORE FLOOR</p>
+                <p class="core-sub">THE LOCKER</p>
+              </div>
+              <article class="pod" data-seat="WAVE" style="--x:-210px; --y:-150px">
+                <span class="pod-id">WAVE</span>
+                <span class="pod-role">scanner</span>
+                <span class="pod-job">hitch budget</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod" data-seat="SPARSE" style="--x:0px; --y:-190px">
+                <span class="pod-id">SPARSE</span>
+                <span class="pod-role">locker</span>
+                <span class="pod-job">shard map</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod" data-seat="BROKER" style="--x:210px; --y:-150px">
+                <span class="pod-id">BROKER</span>
+                <span class="pod-role">market</span>
+                <span class="pod-job">lock-first</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod" data-seat="RISK" style="--x:250px; --y:10px">
+                <span class="pod-id">RISK</span>
+                <span class="pod-role">guard</span>
+                <span class="pod-job">kills</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod" data-seat="VAULT" style="--x:210px; --y:160px">
+                <span class="pod-id">VAULT</span>
+                <span class="pod-role">save</span>
+                <span class="pod-job">never spends</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod writer" data-seat="INJECT" style="--x:0px; --y:200px">
+                <span class="pod-id">INJECT</span>
+                <span class="pod-role">writer</span>
+                <span class="pod-job">sole POST</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod" data-seat="RETRIEVE" style="--x:-210px; --y:160px">
+                <span class="pod-id">RETRIEVE</span>
+                <span class="pod-role">reader</span>
+                <span class="pod-job">JWT READ</span>
+                <span class="bar"></span>
+              </article>
+              <article class="pod" data-seat="PROOF" style="--x:-250px; --y:10px">
+                <span class="pod-id">PROOF</span>
+                <span class="pod-role">checker</span>
+                <span class="pod-job">no fake hash</span>
+                <span class="bar"></span>
+              </article>
+            </div>
+            <p class="fine center">
+              Optional companion for <em>trading</em> seats only:
+              <a href="https://github.com/galleonlabs/hypergrok-trading-desk" target="_blank" rel="noreferrer">galleonlabs/hypergrok-trading-desk</a>
+              — do not import those seats onto STORE FLOOR.
+            </p>
+          </div>
+
+          <aside class="card feed">
+            <h3>Desk feed</h3>
+            <p class="fine">Activity log · paper unless a Railway receipt verifies.</p>
+            <ol id="desk-log" class="receipts" aria-live="polite"></ol>
+          </aside>
+        </div>
+
+        <div class="seats-row" id="seat-cards" aria-label="Agent seats">
+          <article class="seat-card" data-seat="WAVE"><span>01</span><strong>WAVE</strong><em>scanner</em></article>
+          <article class="seat-card" data-seat="SPARSE"><span>02</span><strong>SPARSE</strong><em>locker</em></article>
+          <article class="seat-card" data-seat="BROKER"><span>03</span><strong>BROKER</strong><em>market</em></article>
+          <article class="seat-card" data-seat="RISK"><span>04</span><strong>RISK</strong><em>guard</em></article>
+          <article class="seat-card" data-seat="VAULT"><span>05</span><strong>VAULT</strong><em>save</em></article>
+          <article class="seat-card writer" data-seat="INJECT"><span>06</span><strong>INJECT</strong><em>sole writer</em></article>
+          <article class="seat-card" data-seat="RETRIEVE"><span>07</span><strong>RETRIEVE</strong><em>reader</em></article>
+          <article class="seat-card" data-seat="PROOF"><span>08</span><strong>PROOF</strong><em>checker</em></article>
+        </div>
+
+        <div class="stage-wrap">
           <div class="ocean">
             <div class="wave-stack" aria-hidden="true">
               <div class="wave w1"></div>
@@ -194,6 +311,77 @@
             <ol id="receipt-log" class="receipts" aria-live="polite"></ol>
           </div>
         </div>
+      </section>
+
+      <section id="avenues" class="panel" hidden aria-labelledby="avenues-title">
+        <div class="panel-head">
+          <h2 id="avenues-title">Avenue picker</h2>
+          <p>
+            Live senders can write calldata. Policy and future rows are
+            <strong>honest stubs</strong> — the desk can simulate them, the
+            switchboard will not enable them.
+          </p>
+        </div>
+        <div class="avenue-grid" id="avenue-grid"></div>
+        <p class="fine">
+          Catalog:
+          <code>base_dedicated</code>,
+          <code>uniswap_hitch</code>,
+          <code>coinbase_onchain</code>,
+          <code>wave_first</code>,
+          <code>gap_fill</code>,
+          <code>priority_express</code>,
+          <code>multi_chain_cheapest</code>.
+        </p>
+        <p id="avenue-hint" class="hint">
+          Selected <code>base_dedicated</code> — live Base storage tx.
+        </p>
+      </section>
+
+      <section id="broker" class="panel" hidden aria-labelledby="broker-title">
+        <div class="panel-head">
+          <h2 id="broker-title">Broker · open-market paper</h2>
+          <p>
+            Slot offers in <strong>$STORE credits</strong>. Lock-first. Sparse
+            locker receipt UI. Gap-fill vs express. No invented hashes. Vault
+            never spends this book.
+          </p>
+        </div>
+        <div class="broker-layout">
+          <article class="card">
+            <h3>New offer</h3>
+            <div class="choice-grid">
+              <button type="button" class="choice is-on" id="kind-gap" data-kind="gap_fill">
+                <span class="choice-kicker">policy · stub sender</span>
+                <strong>gap_fill</strong>
+                <span>Cheaper sparse slot. Live inject still needs a live sender.</span>
+              </button>
+              <button type="button" class="choice" id="kind-express" data-kind="priority_express">
+                <span class="choice-kicker">policy · stub sender</span>
+                <strong>priority_express</strong>
+                <span>3× credits. Still not a live chain path.</span>
+              </button>
+            </div>
+            <label>
+              Leftover hitch budget (bytes)
+              <input id="broker-bytes" type="range" min="8" max="128" step="8" value="32" />
+              <output id="broker-bytes-out">32 B</output>
+            </label>
+            <div class="control-row">
+              <button type="button" id="btn-broker-offer" class="primary">Offer paper slot</button>
+            </div>
+            <p class="fine">Ids are <code>paper_slot_*</code> / <code>paper_lock_*</code>. Fill without lock is refused.</p>
+          </article>
+          <article class="card">
+            <h3>Sparse locker · shard map</h3>
+            <p id="shard-status" class="fine">No slot selected.</p>
+            <div id="shard-map" class="grid shards" role="img" aria-label="Sparse locker shard map"></div>
+          </article>
+        </div>
+        <article class="card">
+          <h3>Book</h3>
+          <ol id="broker-book" class="receipts" aria-live="polite"></ol>
+        </article>
       </section>
 
       <section id="surf" class="panel" hidden aria-labelledby="surf-title">
@@ -505,8 +693,8 @@ curl -s -X POST "$URL/api/switchboard" \
 
       <section id="grok" class="panel" hidden aria-labelledby="grok-title">
         <div class="panel-head">
-          <h2 id="grok-title">Grok Bot panel</h2>
-          <p>Short ask. No keys in chat. Secret voice is <code>§$STORE§</code>.</p>
+          <h2 id="grok-title">STORE FLOOR seats · Grok Bot</h2>
+          <p>Short ask. No keys in chat. Secret voice is <code>§$STORE§</code>. INJECT is the sole writer.</p>
         </div>
         <article class="card grok-card">
           <h3>Paste this to your Grok Bot</h3>
@@ -522,7 +710,12 @@ curl -s -X POST "$URL/api/switchboard" \
 4. CEX Advanced Trade cannot carry calldata. Use coinbase_onchain (CDP)
    or base_dedicated. Default MODE=base_sepolia (84532).
 5. After health is 200, seed test credits and POST /api/inject the voice.
-   Hashes come from tx.wait() only. Paper ids stay paper_*.</pre>
+   Hashes come from tx.wait() only. Paper ids stay paper_*.
+6. STORE FLOOR seats: WAVE, SPARSE, BROKER, RISK, VAULT, INJECT, RETRIEVE,
+   PROOF. INJECT is the sole writer. Load agents/store-floor/.
+7. Trading seats only (optional companion):
+   https://github.com/galleonlabs/hypergrok-trading-desk
+   Do not import those seats onto STORE FLOOR.</pre>
           <button type="button" id="btn-copy-grok" class="primary">Copy the ask</button>
         </article>
       </section>
@@ -536,9 +729,16 @@ curl -s -X POST "$URL/api/switchboard" \
         <a href="https://masterledgerlive.github.io/StorageToken/"
           >masterledgerlive.github.io/StorageToken</a
         >
+        · Proof market:
+        <a href="https://github.com/masterledgerlive/StorageToken/blob/main/docs/STORE_PROOF_MARKET.md">STORE_PROOF_MARKET</a>
       </p>
       <p class="fine">
-        No invented live tx hashes. Stripe out of scope. x402 / Kite stay stub-disabled.
+        $STORE Desk / STORE FLOOR · no GROKTOPUS · no Ridark · no invented live tx hashes.
+        Stripe out of scope. x402 / Kite / wave_first / gap_fill / priority_express /
+        multi_chain_cheapest stay stub-disabled as live senders.
+        Trading companion:
+        <a href="https://github.com/galleonlabs/hypergrok-trading-desk">hypergrok-trading-desk</a>
+        (trading seats only).
       </p>
     </footer>
 

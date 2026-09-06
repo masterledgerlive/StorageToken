@@ -1,4 +1,5 @@
 import type { AppConfig } from "../config.js";
+import { stubReason } from "../avenues.js";
 import {
   ENTRY_POINTS,
   LIVE_ENTRY_POINTS,
@@ -12,6 +13,12 @@ export function coinbaseCdpReady(config: AppConfig): boolean {
   return Boolean(c.apiKey && c.apiSecret && (c.walletSecret || c.projectId));
 }
 
+function envForcedStub(config: AppConfig, name: EntryPoint): boolean {
+  if (name === "x402") return config.x402Enabled;
+  if (name === "kite") return config.kiteEnabled;
+  return false;
+}
+
 export function buildSwitchboard(
   config: AppConfig,
   override?: EntryPoint
@@ -21,14 +28,10 @@ export function buildSwitchboard(
 
   for (const name of ENTRY_POINTS) {
     if (STUB_ENTRY_POINTS.includes(name)) {
-      const forced =
-        name === "x402" ? config.x402Enabled : config.kiteEnabled;
       flags[name] = {
         enabled: false,
         stub: true,
-        reason: forced
-          ? `${name} is stub-flagged and stays disabled`
-          : `${name} stub — clearly disabled (future)`,
+        reason: stubReason(name, envForcedStub(config, name)),
       };
       continue;
     }
