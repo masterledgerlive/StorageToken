@@ -16,6 +16,11 @@ import {
 } from "./chain/keys.js";
 import { CreditLedger } from "./credits/ledger.js";
 import { costForBytes, measureHitchWave, sellTarget } from "./credits/pricing.js";
+import {
+  evaluateMainnetCreditSeed,
+  MAINNET_BOOTSTRAP_SEED_MAX,
+  MAINNET_BOOTSTRAP_SEED_VOICES,
+} from "./credits/seed-policy.js";
 import { executeInject, type InjectionStore } from "./inject/engine.js";
 import { PaperLoop } from "./loop/paper.js";
 import { parseInjectionPayload } from "./payload.js";
@@ -492,18 +497,42 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
   });
 
   app.post("/api/credits/seed", (req, res) => {
-    if (config.mode === "full_live" || (config.mode === "base_mainnet_guarded" && config.confirmMainnet)) {
-      return res.status(403).json({ error: "Seeding disabled in guarded/live mainnet" });
-    }
     const { address, amount } = req.body ?? {};
     if (!ethers.isAddress(address) || typeof amount !== "string" || !/^[0-9]+$/.test(amount)) {
       return res.status(400).json({ error: "address and amount (wei string) required" });
     }
-    ledger.seed(address, BigInt(amount));
+    const value = BigInt(amount);
+    const gate = evaluateMainnetCreditSeed({
+      mode: config.mode,
+      confirmMainnet: config.confirmMainnet,
+      allowMainnetCreditSeed: config.allowMainnetCreditSeed,
+      amount: value,
+      currentBalance: ledger.balanceOf(address),
+    });
+    if (!gate.ok) {
+      return res.status(gate.status).json({
+        error: gate.error,
+        ...(gate.status === 400
+          ? { max: MAINNET_BOOTSTRAP_SEED_MAX.toString() }
+          : {}),
+      });
+    }
+    ledger.seed(address, value);
+    if (gate.bootstrap) {
+      console.log(
+        `[StorageToken] guarded bootstrap credit seed address=${address} amount=${value.toString()} balance=${ledger.balanceOf(address).toString()} ALLOW_MAINNET_CREDIT_SEED=yes max=${MAINNET_BOOTSTRAP_SEED_MAX.toString()} (${MAINNET_BOOTSTRAP_SEED_VOICES} typical §$STORE§ voices)`
+      );
+    }
     res.json({
       address,
       balance: ledger.balanceOf(address).toString(),
       currency: "STORE",
+      ...(gate.bootstrap
+        ? {
+            bootstrap: true,
+            max: MAINNET_BOOTSTRAP_SEED_MAX.toString(),
+          }
+        : {}),
     });
   });
 
