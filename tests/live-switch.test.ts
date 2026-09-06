@@ -7,6 +7,7 @@ import { createApp } from "../src/app.js";
 import {
   applyModeOverride,
   assertLiveSwitchAllowed,
+  coinbaseEnvReady,
   firstEnv,
   loadConfig,
   networkForMode,
@@ -87,6 +88,36 @@ afterEach(async () => {
 });
 
 describe("alias env parsing", () => {
+  it("maps guardian CDP_* names into coinbaseCdp and health", async () => {
+    const hot = Wallet.createRandom();
+    const cfg = loadConfig({
+      CDP_API_KEY_ID: "guardian-key",
+      CDP_API_KEY_SECRET: "-----BEGIN\\nKEY\\n-----",
+      CDP_WALLET_SECRET: hot.privateKey,
+    });
+    expect(cfg.coinbaseCdp.apiKey).toBe("guardian-key");
+    expect(cfg.coinbaseCdp.apiSecret).toBe("-----BEGIN\nKEY\n-----");
+    expect(cfg.coinbaseCdp.walletSecret).toBe(hot.privateKey);
+    expect(coinbaseCdpReady(cfg)).toBe(true);
+    expect(resolveFundAddress(cfg)).toBe(hot.address);
+
+    const { app } = await createApp({
+      config: loadConfig({
+        MODE: "base_sepolia",
+        JWT_SECRET: "test-secret",
+        CDP_API_KEY_ID: "guardian-key",
+        CDP_API_KEY_SECRET: "guardian-secret",
+        CDP_WALLET_SECRET: hot.privateKey,
+      }),
+      adapter: mockAdapter(),
+    });
+    const { server, base } = await listen(app);
+    servers.push(server);
+    const health = await (await fetch(`${base}/health`)).json();
+    expect(health.coinbaseOnchainReady).toBe(true);
+    expect(health.fundAddress).toBe(hot.address);
+  });
+
   it("maps old-guide names into coinbaseCdp", () => {
     const hot = Wallet.createRandom();
     const cfg = loadConfig({
@@ -101,13 +132,32 @@ describe("alias env parsing", () => {
     expect(resolveFundAddress(cfg)).toBe(hot.address);
   });
 
+  it("shared Railway guardian-only env is ready without remapping", () => {
+    const env = {
+      CDP_API_KEY_ID: "guardian-id",
+      CDP_API_KEY_SECRET: "guardian-secret",
+      CDP_WALLET_SECRET: "guardian-wallet",
+      COINBASE_CDP_API_KEY: "",
+      COINBASE_CDP_API_SECRET: "",
+      COINBASE_CDP_WALLET_SECRET: "",
+    };
+    expect(coinbaseEnvReady(env)).toBe(true);
+    expect(coinbaseEnvReady({})).toBe(false);
+    const board = buildSwitchboard(loadConfig(env));
+    expect(board.flags.coinbase_onchain.enabled).toBe(true);
+    expect(loadConfig(env).coinbaseCdp.apiKey).toBe("guardian-id");
+  });
+
   it("prefers COINBASE_CDP_* over aliases", () => {
     const cfg = loadConfig({
       COINBASE_CDP_API_KEY: "cdp-key",
+      CDP_API_KEY_ID: "guardian-id",
       COINBASE_API_KEY: "old-key",
       COINBASE_CDP_API_SECRET: "cdp-secret",
+      CDP_API_KEY_SECRET: "guardian-secret",
       COINBASE_API_SECRET: "old-secret",
       COINBASE_CDP_WALLET_SECRET: "cdp-wallet",
+      CDP_WALLET_SECRET: "guardian-wallet",
       COINBASE_PRIVATE_KEY: "old-private",
       COINBASE_CDP_PROJECT_ID: "proj",
     });

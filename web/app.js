@@ -51,12 +51,17 @@ TOKEN_EXPIRY_HOURS=24
 
 # Coinbase CDP / Base wallet (on-chain ONLY).
 # CEX Advanced Trade CANNOT carry calldata. Do not set CEX keys here.
+# Ready when COINBASE_CDP_* OR guardian CDP_* OR old-guide COINBASE_* are set.
+# Shared Railway with guardian: keep CDP_* — no remapping.
 COINBASE_CDP_API_KEY=
 COINBASE_CDP_API_SECRET=
 COINBASE_CDP_WALLET_SECRET=
 COINBASE_CDP_PROJECT_ID=
 # COINBASE_CDP_ADDRESS=
-# Old-guide aliases (used if CDP name unset):
+CDP_API_KEY_ID=
+CDP_API_KEY_SECRET=
+CDP_WALLET_SECRET=
+# Old-guide aliases (used if names above unset):
 # COINBASE_API_KEY=  → COINBASE_CDP_API_KEY
 # COINBASE_API_SECRET= → COINBASE_CDP_API_SECRET
 # COINBASE_PRIVATE_KEY= → COINBASE_CDP_WALLET_SECRET

@@ -62,7 +62,17 @@ Preferred names (this repo):
 | `COINBASE_CDP_PROJECT_ID` | optional; also satisfies switchboard readiness with the two API keys |
 | `COINBASE_CDP_ADDRESS` | optional stable EVM address if the wallet secret is not hex |
 
-Aliases from the old `coinbase-multi-injector` guide (accepted if the `COINBASE_CDP_*` name is unset):
+**Shared Railway with guardian:** leave `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET` as-is. StorageToken readiness accepts them as aliases — **no remapping**. Empty `COINBASE_CDP_*` names do not hide the guardian keys.
+
+Guardian-protocol-agent names (accepted if the `COINBASE_CDP_*` name is unset — same CDP product):
+
+| Guardian env | Maps to |
+| --- | --- |
+| `CDP_API_KEY_ID` | `COINBASE_CDP_API_KEY` |
+| `CDP_API_KEY_SECRET` | `COINBASE_CDP_API_SECRET` |
+| `CDP_WALLET_SECRET` | `COINBASE_CDP_WALLET_SECRET` |
+
+Aliases from the old `coinbase-multi-injector` guide (accepted if the `COINBASE_CDP_*` / guardian name is unset):
 
 | Old guide | Maps to |
 | --- | --- |
@@ -70,7 +80,7 @@ Aliases from the old `coinbase-multi-injector` guide (accepted if the `COINBASE_
 | `COINBASE_API_SECRET` | `COINBASE_CDP_API_SECRET` |
 | `COINBASE_PRIVATE_KEY` | `COINBASE_CDP_WALLET_SECRET` |
 
-`coinbase_onchain` enables only when `apiKey + apiSecret + (walletSecret or projectId)` are set.
+`coinbase_onchain` / `coinbaseOnchainReady` is true when any complete triple is set: `COINBASE_CDP_*`, guardian `CDP_*`, or old-guide `COINBASE_*` (`apiKey + apiSecret + (walletSecret or projectId)`). PEM wallet/API secrets may contain literal `\n` (guardian Railway style) — they are unescaped before the CDP SDK sees them.
 
 Also set, before a live flip:
 
@@ -141,11 +151,15 @@ curl -s -X POST "$URL/api/inject" \
 
 The `coinbase_onchain` path sends the same calldata (`to` = router or provider, `value` = 0, `data` = payload) on the active chain via:
 
-1. A hex `COINBASE_CDP_WALLET_SECRET` / `COINBASE_PRIVATE_KEY` (ethers), or
+1. A hex `COINBASE_CDP_WALLET_SECRET` / `CDP_WALLET_SECRET` / `COINBASE_PRIVATE_KEY` (ethers), or
 2. `@coinbase/cdp-sdk` for a CDP-managed wallet, or
 3. `INJECTOR_PRIVATE_KEY` on Base if that is the hot key
 
 The hash in the response is the **mined receipt**. Do not send `txHash` in the body. CEX Advanced Trade stays refused.
+
+Optional `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` fire on a **mined** inject success and on inject failure. Unset tokens stay silent.
+
+Wave hitch USD (`POST /api/quote` / hitch inject with `needUsd`, `tokenAddress`, `usdBudget`, or `leftoverEth`) uses **GeckoTerminal then DexScreener only**. A missing quote fails closed — never a silent `$0`. Bytes-only leftover hitch (no USD fields) is unchanged.
 
 ---
 

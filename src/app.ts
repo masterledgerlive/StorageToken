@@ -15,7 +15,7 @@ import {
   resolveFundAddress,
 } from "./chain/keys.js";
 import { CreditLedger } from "./credits/ledger.js";
-import { costForBytes, sellTarget } from "./credits/pricing.js";
+import { costForBytes, measureHitchWave, sellTarget } from "./credits/pricing.js";
 import { executeInject, type InjectionStore } from "./inject/engine.js";
 import { PaperLoop } from "./loop/paper.js";
 import { parseInjectionPayload } from "./payload.js";
@@ -33,10 +33,17 @@ import {
   type InjectionRecord,
   type Mode,
 } from "./types.js";
-import { notifyTelegram } from "./alerts/telegram.js";
+import { formatInjectAlert, notifyTelegram } from "./alerts/telegram.js";
 import { deskAvenueCatalog } from "./avenues.js";
 import { injectIsSoleWriter, seatCatalog } from "./seats.js";
 import { PaperBroker, type SlotKind } from "./broker/paper.js";
+import { resolveCdpFundAddress } from "./chain/cdp.js";
+import {
+  BASE_WETH,
+  createLivePriceClient,
+  wantsLiveUsd,
+  type LivePriceClient,
+} from "./prices/live.js";
 
 export interface CreateAppOptions {
   config?: AppConfig;
@@ -46,6 +53,8 @@ export interface CreateAppOptions {
   leftovers?: LeftoverRegistry;
   injectionStore?: InjectionStore;
   broker?: PaperBroker;
+  prices?: LivePriceClient;
+  notify?: typeof notifyTelegram;
 }
 
 export interface CreatedApp {
@@ -72,6 +81,13 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
   const config = options.config ?? loadConfig();
   assertNotVaultKey(config.injectorPrivateKey, config.vaultAddress);
   config.resolvedFundAddress = resolveFundAddress(config);
+  if (!config.resolvedFundAddress) {
+    try {
+      await resolveCdpFundAddress(config);
+    } catch {
+      // Health still works; fundAddress fills after the first CDP account resolve.
+    }
+  }
   assertFundAddressNotVault(config.resolvedFundAddress, config.vaultAddress);
 
   const injectionStore: InjectionStore =
@@ -88,6 +104,8 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
   const leftovers = options.leftovers ?? new LeftoverRegistry();
   const paper = new PaperLoop();
   const broker = options.broker ?? new PaperBroker();
+  const prices = options.prices ?? createLivePriceClient();
+  const notify = options.notify ?? notifyTelegram;
   broker.seedDemoBook();
 
   let switchboard = buildSwitchboard(config);
@@ -299,7 +317,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
           entryPoint,
           chain: req.body.chain,
         },
-        { config, adapter, ledger, leftovers, switchboard }
+        { config, adapter, ledger, leftovers, switchboard, prices }
       );
 
       if (config.mode !== "paper" && !record.txHash) {
@@ -323,10 +341,18 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
       record.accessToken = accessToken.token;
       injectionStore.set(record.injectionId, record);
 
-      void notifyTelegram(
-        config.telegram,
-        `[StorageToken] ${record.status} ${record.injectionId} credits=${record.costCredits} hash=${record.txHash || record.paperId}`
-      );
+      if (record.txHash) {
+        void notify(
+          config.telegram,
+          formatInjectAlert({
+            ok: true,
+            injectionId: record.injectionId,
+            txHash: record.txHash,
+            paidCredits: record.costCredits,
+            entryPoint: record.entryPoint,
+          })
+        );
+      }
 
       res.json({
         injectionId: record.injectionId,
@@ -362,8 +388,16 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Injection failed";
+      void notify(
+        config.telegram,
+        formatInjectAlert({
+          ok: false,
+          error: message,
+          entryPoint: typeof req.body?.entryPoint === "string" ? req.body.entryPoint : switchboard.entryPoint,
+        })
+      );
       const status =
-        /disabled|Insufficient|Invalid|Missing|Refusing|invent|mocked|CEX|txHash|leftover|credits/i.test(
+        /disabled|Insufficient|Invalid|Missing|Refusing|invent|mocked|CEX|txHash|leftover|credits|USD|price|silent/i.test(
           message
         )
           ? 400
@@ -496,16 +530,96 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Created
     res.json({ leftovers: leftovers.list() });
   });
 
-  app.post("/api/quote", (req, res) => {
+  app.get("/api/price", async (req, res) => {
+    try {
+      const token = String(req.query.token ?? "");
+      const wantEth = req.query.eth === "1" || token.toLowerCase() === "eth";
+      if (wantEth) {
+        const quote = await prices.ethUsd();
+        return res.json({
+          token: "ETH",
+          address: BASE_WETH,
+          usd: quote.usd,
+          source: quote.source,
+        });
+      }
+      if (!ethers.isAddress(token)) {
+        return res.status(400).json({ error: "token address required (or eth=1)" });
+      }
+      const quote = await prices.tokenUsd(token);
+      res.json({
+        token,
+        address: token,
+        usd: quote.usd,
+        source: quote.source,
+      });
+    } catch (error) {
+      res.status(502).json({
+        error: error instanceof Error ? error.message : "price unavailable",
+      });
+    }
+  });
+
+  app.post("/api/quote", async (req, res) => {
     try {
       const payload = parseInjectionPayload(req.body);
       const cost = costForBytes(payload.length);
       const fairExit = Number(req.body.fairExit ?? 0);
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      let hitch:
+        | ReturnType<typeof measureHitchWave>
+        | { leftoverBytes: number; payloadBytes: number; fits: boolean }
+        | undefined;
+      if (wantsLiveUsd(body)) {
+        const leftoverBytes = Number(body.leftoverBytes);
+        const gasPriceGwei = Number(body.gasPriceGwei);
+        const eth = await prices.ethUsd();
+        let tokenUsd: number | undefined;
+        if (typeof body.tokenAddress === "string") {
+          tokenUsd = (await prices.tokenUsd(body.tokenAddress)).usd;
+        }
+        if (
+          Number.isInteger(leftoverBytes) &&
+          leftoverBytes >= 0 &&
+          Number.isFinite(gasPriceGwei) &&
+          gasPriceGwei > 0
+        ) {
+          hitch = measureHitchWave({
+            leftoverBytes,
+            payloadBytes: payload.length,
+            ethUsd: eth.usd,
+            tokenUsd,
+            gasPriceGwei,
+            leftoverEth: body.leftoverEth === undefined ? undefined : Number(body.leftoverEth),
+            usdBudget: body.usdBudget === undefined ? undefined : Number(body.usdBudget),
+          });
+        } else if (body.leftoverBytes !== undefined || body.usdBudget !== undefined) {
+          throw new Error(
+            "gasPriceGwei and leftoverBytes required for hitch USD sizing — refusing silent $0"
+          );
+        } else {
+          hitch = {
+            leftoverBytes: Number.isInteger(leftoverBytes) ? leftoverBytes : payload.length,
+            payloadBytes: payload.length,
+            ethUsd: eth.usd,
+            tokenUsd,
+            fits: true,
+          };
+        }
+      } else if (body.leftoverBytes !== undefined) {
+        const leftoverBytes = Number(body.leftoverBytes);
+        hitch = {
+          leftoverBytes,
+          payloadBytes: payload.length,
+          fits: payload.length > 0 && payload.length <= leftoverBytes,
+        };
+      }
       res.json({
         bytesLen: payload.length,
         injectCostCredits: cost.toString(),
         sellTarget: sellTarget(fairExit, Number(cost) / 1e18),
         formula: "sell_target = fair_exit + inject_cost",
+        hitch,
         voice: STORE_VOICE,
       });
     } catch (error) {

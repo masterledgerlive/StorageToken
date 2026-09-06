@@ -4,11 +4,12 @@ import { networkForMode, type AppConfig } from "../config.js";
 import { BlockchainAdapter } from "../chain/adapter.js";
 import { LeftoverRegistry } from "../chain/leftovers.js";
 import { CreditLedger } from "../credits/ledger.js";
-import { costForBytes } from "../credits/pricing.js";
+import { costForBytes, quoteHitchWave } from "../credits/pricing.js";
 import { assertNotMockedHash, parseInjectionPayload } from "../payload.js";
 import { wrapStoreVoice } from "../voice.js";
 import { sendCoinbaseOnchain, type CdpSendClient } from "../chain/cdp.js";
 import { assertEntryEnabled, refuseCexAdvancedTrade } from "../switchboard/index.js";
+import { wantsLiveUsd, type LivePriceClient } from "../prices/live.js";
 import type { SwitchboardState } from "../types.js";
 import {
   STORE_VOICE,
@@ -34,6 +35,7 @@ export interface InjectDeps {
   ledger: CreditLedger;
   leftovers: LeftoverRegistry;
   switchboard: SwitchboardState;
+  prices?: LivePriceClient;
   cdpClient?: CdpSendClient;
   sendTx?: (input: {
     chain: string;
@@ -135,6 +137,9 @@ export async function executeInject(
       throw new Error("uniswap_hitch requires leftoverTx from a REAL registered swap");
     }
     leftoverTx = assertNotMockedHash(rawLeftover);
+    if (wantsLiveUsd(req.body)) {
+      await assertHitchUsdSizing(req.body, leftoverTx, payload.length, deps);
+    }
     deps.leftovers.consume(leftoverTx, payload.length);
     data = encodeHitchCalldata(payload, leftoverTx);
   } else if (req.entryPoint === "coinbase_onchain") {
@@ -200,4 +205,39 @@ export async function executeInject(
   };
 
   return { record, strand, result: { ...result, txHash, leftoverTx } };
+}
+
+async function assertHitchUsdSizing(
+  body: Record<string, unknown>,
+  leftoverTx: string,
+  payloadBytes: number,
+  deps: InjectDeps
+): Promise<void> {
+  if (!deps.prices) {
+    throw new Error(
+      "Live ETH/token USD required for hitch sizing — refusing silent $0. Wire GeckoTerminal/DexScreener."
+    );
+  }
+  const eth = await deps.prices.ethUsd();
+  let tokenUsd: number | undefined;
+  if (typeof body.tokenAddress === "string") {
+    tokenUsd = (await deps.prices.tokenUsd(body.tokenAddress)).usd;
+  }
+  const slot = deps.leftovers.get(leftoverTx);
+  const leftoverBytes = Number(body.leftoverBytes ?? slot?.leftoverBytes);
+  const gasPriceGwei = Number(body.gasPriceGwei);
+  const wantsSizedQuote =
+    (Number.isInteger(leftoverBytes) && leftoverBytes >= 0 && Number.isFinite(gasPriceGwei) && gasPriceGwei > 0) ||
+    body.usdBudget !== undefined ||
+    body.leftoverEth !== undefined;
+  if (!wantsSizedQuote) return;
+  quoteHitchWave({
+    leftoverBytes: Number.isInteger(leftoverBytes) ? leftoverBytes : 0,
+    payloadBytes,
+    ethUsd: eth.usd,
+    tokenUsd,
+    gasPriceGwei,
+    leftoverEth: body.leftoverEth === undefined ? undefined : Number(body.leftoverEth),
+    usdBudget: body.usdBudget === undefined ? undefined : Number(body.usdBudget),
+  });
 }

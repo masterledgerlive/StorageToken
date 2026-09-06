@@ -1,4 +1,4 @@
-import type { AppConfig } from "../config.js";
+import { coinbaseCredsReady, type AppConfig } from "../config.js";
 import { stubReason } from "../avenues.js";
 import {
   ENTRY_POINTS,
@@ -9,8 +9,7 @@ import {
 } from "../types.js";
 
 export function coinbaseCdpReady(config: AppConfig): boolean {
-  const c = config.coinbaseCdp;
-  return Boolean(c.apiKey && c.apiSecret && (c.walletSecret || c.projectId));
+  return coinbaseCredsReady(config.coinbaseCdp);
 }
 
 function envForcedStub(config: AppConfig, name: EntryPoint): boolean {
@@ -43,7 +42,7 @@ export function buildSwitchboard(
         stub: false,
         reason: ready
           ? "Coinbase CDP / Base wallet on-chain path"
-          : "COINBASE_CDP_* (or COINBASE_API_KEY / COINBASE_API_SECRET / COINBASE_PRIVATE_KEY) missing — on-chain path disabled. CEX Advanced Trade cannot carry calldata.",
+          : "CDP_API_KEY_ID / CDP_API_KEY_SECRET / CDP_WALLET_SECRET (or COINBASE_CDP_* / COINBASE_API_KEY / COINBASE_API_SECRET / COINBASE_PRIVATE_KEY) missing — on-chain path disabled. CEX Advanced Trade cannot carry calldata.",
       };
       continue;
     }

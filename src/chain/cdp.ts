@@ -116,7 +116,7 @@ export async function sendCoinbaseOnchain(
   }
 
   throw new Error(
-    "coinbase_onchain has no signer — set a hex COINBASE_CDP_WALLET_SECRET / COINBASE_PRIVATE_KEY or INJECTOR_PRIVATE_KEY, or a CDP wallet secret @coinbase/cdp-sdk can use"
+    "coinbase_onchain has no signer — set CDP_WALLET_SECRET / COINBASE_CDP_WALLET_SECRET / COINBASE_PRIVATE_KEY or INJECTOR_PRIVATE_KEY, or a CDP wallet secret @coinbase/cdp-sdk can use"
   );
 }
 
