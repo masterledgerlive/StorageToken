@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Unified $STORE StorageToken — Base-first hitch/inject, $STORE credits as only storage payment",
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "tsx watch src/index.ts",
